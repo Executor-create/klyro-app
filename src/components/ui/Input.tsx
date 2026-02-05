@@ -1,0 +1,51 @@
+import type { UseFormRegister, FieldErrors } from 'react-hook-form';
+
+type InputProps = {
+  className?: string;
+  type?: string;
+  label?: string;
+  placeholder?: string;
+  name: string;
+  register: UseFormRegister<Record<string, unknown>>;
+  errors: FieldErrors<Record<string, unknown>>;
+  options?: Record<string, unknown>;
+};
+
+const Input = ({
+  className,
+  type,
+  label,
+  placeholder,
+  name,
+  register,
+  errors,
+  options,
+}: InputProps) => {
+  return label ? (
+    <label className="flex flex-col gap-2">
+      <span className="font-medium text-sm">{label}</span>
+      <input
+        type={type}
+        className={className}
+        placeholder={placeholder}
+        {...register(name, options)}
+        aria-invalid={errors[name] ? 'true' : 'false'}
+      />
+      {errors[name] && (
+        <span role="alert" className="text-red-500 text-sm mt-1">
+          {String(errors[name]?.message)}
+        </span>
+      )}
+    </label>
+  ) : (
+    <input
+      type={type}
+      className={className}
+      placeholder={placeholder}
+      {...register(name, options)}
+      aria-invalid={errors[name] ? 'true' : 'false'}
+    />
+  );
+};
+
+export default Input;
