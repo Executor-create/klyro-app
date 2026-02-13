@@ -3,4 +3,20 @@
 @theme {
   --primary-color: #6366f1;
   --secondary-color: #8b5cf6;
+  --third-color: #161721;
+  --fourth-color: #0f1017;
+  --font-family-google: 'Google Sans', sans-serif;
+}
+
+.font-google {
+  font-family: var(--font-family-google);
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
