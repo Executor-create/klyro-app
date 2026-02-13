@@ -2,6 +2,7 @@ import type { UseFormRegister, FieldErrors } from 'react-hook-form';
 
 type InputProps = {
   className?: string;
+  style?: React.CSSProperties;
   type?: string;
   label?: string;
   placeholder?: string;
@@ -13,6 +14,7 @@ type InputProps = {
 
 const Input = ({
   className,
+  style,
   type,
   label,
   placeholder,
@@ -27,12 +29,13 @@ const Input = ({
       <input
         type={type}
         className={className}
+        style={style}
         placeholder={placeholder}
         {...register(name, options)}
         aria-invalid={errors[name] ? 'true' : 'false'}
       />
       {errors[name] && (
-        <span role="alert" className="text-red-500 text-sm mt-1">
+        <span role="alert" className="text-red-500 text-sm mt-1 font-google">
           {String(errors[name]?.message)}
         </span>
       )}
@@ -41,6 +44,7 @@ const Input = ({
     <input
       type={type}
       className={className}
+      style={style}
       placeholder={placeholder}
       {...register(name, options)}
       aria-invalid={errors[name] ? 'true' : 'false'}
