@@ -12,14 +12,17 @@ import {
 import { FiEyeOff } from 'react-icons/fi';
 import { useState } from 'react';
 import { EMAIL_REGEX, PASSWORD_REGEX } from '../utils/regex';
+import { signUp, type SignUpRequest } from '../api/auth';
+import type { User } from '../types/user.type';
 
 const Login = () => {
   const {
     handleSubmit,
     register,
+    reset,
     watch,
     formState: { errors },
-  } = useForm<Record<string, unknown>>();
+  } = useForm<any>();
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLogin, setIsLogin] = useState<boolean>(true);
 
@@ -27,10 +30,20 @@ const Login = () => {
     setShowPassword(!showPassword);
   };
 
-  const onSubmit: SubmitHandler<Record<string, unknown>> = (
-    data: Record<string, unknown>,
-  ) => {
-    console.log(data);
+  const handleSignUp: SubmitHandler<SignUpRequest> = async (
+    data: SignUpRequest,
+  ): Promise<User> => {
+    try {
+      reset();
+      return await signUp(data);
+    } catch (error) {
+      console.error('Error signing up:', error);
+      throw error;
+    }
+  };
+
+  const handleLogin = () => {
+    // TODO: Implement login functionality
   };
 
   return (
@@ -60,7 +73,10 @@ const Login = () => {
         <p className="text-lg text-gray-500 font-google">
           Your gaming social network
         </p>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form
+          onSubmit={handleSubmit(isLogin ? handleLogin : handleSignUp)}
+          className="w-full max-w-md"
+        >
           <Card className="w-105 mt-8 p-6 shadow-lg border border-gray-300">
             <div className="flex p-1 mb-1 bg-gray-200 rounded-2xl">
               <Button
