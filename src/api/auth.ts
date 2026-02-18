@@ -18,7 +18,8 @@ export const signUp = async (req: SignUpRequest): Promise<User> => {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to sign up');
+      const errorData = await response.json();
+      throw errorData;
     }
 
     return await response.json();

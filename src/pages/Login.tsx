@@ -21,6 +21,7 @@ const Login = () => {
     register,
     reset,
     watch,
+    setError,
     formState: { errors },
   } = useForm<any>();
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -32,13 +33,47 @@ const Login = () => {
 
   const handleSignUp: SubmitHandler<SignUpRequest> = async (
     data: SignUpRequest,
-  ): Promise<User> => {
+  ): Promise<User | undefined> => {
     try {
-      reset();
-      return await signUp(data);
-    } catch (error) {
-      console.error('Error signing up:', error);
-      throw error;
+      const user = await signUp(data);
+
+      if (user) {
+        reset();
+      }
+
+      return user;
+    } catch (error: any) {
+      reset(undefined, { keepValues: true });
+
+      if (error?.field && error?.message) {
+        setError(error.field, { type: 'server', message: error.message });
+      } else if (error?.message) {
+        const message = error.message.toLowerCase();
+
+        if (message.includes('username') && message.includes('email')) {
+          setError('username', {
+            type: 'server',
+            message: 'Username or email already exists',
+          });
+          setError('email', {
+            type: 'server',
+            message: 'Username or email already exists',
+          });
+        } else if (message.includes('username')) {
+          setError('username', { type: 'server', message: error.message });
+        } else if (message.includes('email')) {
+          setError('email', { type: 'server', message: error.message });
+        } else {
+          setError('root', { type: 'server', message: error.message });
+        }
+      } else if (error instanceof Error) {
+        setError('root', { type: 'server', message: error.message });
+      } else {
+        setError('root', {
+          type: 'server',
+          message: 'An unknown error occurred',
+        });
+      }
     }
   };
 
