@@ -51,19 +51,36 @@ const Header = () => {
         <FiSearch size={20} className="absolute left-3 text-gray-400" />
       </div>
       <div className="flex items-center gap-6">
-        <FiHome
-          size={38}
-          className="cursor-pointer hover:bg-(--primary-color) icon-glow p-2 rounded-xl bg-(--third-color) transition-colors duration-300"
-        />
-        <LuGamepad2
-          size={38}
-          className="cursor-pointer hover:bg-(--primary-color) icon-glow p-2 rounded-xl bg-(--third-color) transition-colors duration-300"
-        />
-        <FaRegBell
-          size={38}
-          className="cursor-pointer hover:bg-(--primary-color) icon-glow p-2 rounded-xl bg-(--third-color) transition-colors duration-300"
-        />
-        <MdAccountCircle size={38} className="cursor-pointer " />
+        <a href="/">
+          <FiHome
+            size={38}
+            className="cursor-pointer hover:bg-(--primary-color) icon-glow p-2 rounded-xl bg-(--third-color) transition-colors duration-300"
+          />
+        </a>
+        <a href="/">
+          <LuGamepad2
+            size={38}
+            className="cursor-pointer hover:bg-(--primary-color) icon-glow p-2 rounded-xl bg-(--third-color) transition-colors duration-300"
+          />
+        </a>
+        <a href="/">
+          <FiHome
+            size={38}
+            className="cursor-pointer hover:bg-(--primary-color) icon-glow p-2 rounded-xl bg-(--third-color) transition-colors duration-300"
+          />
+        </a>
+        <a href="/">
+          <FaRegBell
+            size={38}
+            className="cursor-pointer hover:bg-(--primary-color) icon-glow p-2 rounded-xl bg-(--third-color) transition-colors duration-300"
+          />
+        </a>
+        <a href="/profile">
+          <MdAccountCircle
+            size={44}
+            className="cursor-pointer hover:bg-(--primary-color) icon-glow p-2 rounded-xl bg-(--third-color) transition-colors duration-300"
+          />
+        </a>
       </div>
     </header>
   );
