@@ -1,28 +1,37 @@
 import { createBrowserRouter } from 'react-router-dom';
 import Home from '../pages/Home';
+import { AuthProvider } from '../contexts/AuthContext';
 import Login from '../pages/Login';
 import { Profile } from '../pages/Profile';
+import RequireAuth from '../components/RequireAuth';
+import OTP from '../pages/OTP';
 
-type Route = {
-  path: string;
-  element: React.ReactNode;
-};
-
-const routes: Route[] = [
-  {
-    path: '/',
-    element: <Home />,
-  },
+const router = createBrowserRouter([
   {
     path: '/login',
     element: <Login />,
   },
   {
-    path: '/profile',
-    element: <Profile />,
+    path: '/otp',
+    element: <OTP />,
   },
-];
-
-const router = createBrowserRouter(routes);
+  {
+    element: (
+      <AuthProvider>
+        <RequireAuth />
+      </AuthProvider>
+    ),
+    children: [
+      {
+        path: '/',
+        element: <Home />,
+      },
+      {
+        path: 'profile',
+        element: <Profile />,
+      },
+    ],
+  },
+]);
 
 export default router;
