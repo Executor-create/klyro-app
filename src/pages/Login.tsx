@@ -12,8 +12,16 @@ import {
 import { FiEyeOff } from 'react-icons/fi';
 import { useState } from 'react';
 import { EMAIL_REGEX, PASSWORD_REGEX } from '../utils/regex';
-import { signUp, type SignUpRequest } from '../api/auth';
-import type { User } from '../types/user.type';
+import {
+  login,
+  signUp,
+  type LoginRequest,
+  type LoginResponse,
+  type SignUpRequest,
+  type SignUpResponse,
+} from '../api/auth';
+import { setItemToLocalStorage } from '../utils/localStorage';
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const {
@@ -26,6 +34,8 @@ const Login = () => {
   } = useForm<any>();
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLogin, setIsLogin] = useState<boolean>(true);
+  const [successMessage, setSuccessMessage] = useState<string>('');
+  const navigate = useNavigate();
 
   const togglePasswordVisibility = (): void => {
     setShowPassword(!showPassword);
@@ -33,15 +43,15 @@ const Login = () => {
 
   const handleSignUp: SubmitHandler<SignUpRequest> = async (
     data: SignUpRequest,
-  ): Promise<User | undefined> => {
+  ): Promise<SignUpResponse | undefined> => {
     try {
-      const user = await signUp(data);
+      const response = await signUp(data);
 
-      if (user) {
+      if (response && response.userId) {
         reset();
+        navigate('/otp');
       }
-
-      return user;
+      return response;
     } catch (error: any) {
       reset(undefined, { keepValues: true });
 
@@ -77,8 +87,39 @@ const Login = () => {
     }
   };
 
-  const handleLogin = () => {
-    // TODO: Implement login functionality
+  const handleLogin: SubmitHandler<LoginRequest> = async (
+    data: LoginRequest,
+  ): Promise<LoginResponse | undefined> => {
+    try {
+      const response = await login(data);
+
+      setItemToLocalStorage('token', response?.accessToken || '');
+
+      setSuccessMessage('Login successful! Redirecting to home...');
+      setTimeout(() => {
+        setSuccessMessage('');
+        navigate('/');
+      }, 1500);
+      return response;
+    } catch (error: any) {
+      reset(undefined, { keepValues: true });
+
+      if (error?.message) {
+        const message = error.message.toLowerCase();
+        const emailInvalid = message.includes('email');
+        const passwordInvalid = message.includes('password');
+        if (emailInvalid && passwordInvalid) {
+          setError('email', {
+            type: 'server',
+            message: 'Invalid email or password',
+          });
+          setError('password', {
+            type: 'server',
+            message: 'Invalid email or password',
+          });
+        }
+      }
+    }
   };
 
   return (
@@ -108,6 +149,26 @@ const Login = () => {
         <p className="text-lg text-gray-500 font-google">
           Your gaming social network
         </p>
+        {successMessage && (
+          <div className="w-full max-w-md mb-1 mt-3 flex justify-center">
+            <div className="flex items-center gap-3 bg-linear-to-r from-green-400 to-emerald-500 border-0 shadow-lg px-6 py-4 rounded-xl text-white text-lg font-semibold font-google animate-fade-in">
+              <svg
+                className="w-6 h-6 text-white"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              <span>{successMessage}</span>
+            </div>
+          </div>
+        )}
         <form
           onSubmit={handleSubmit(isLogin ? handleLogin : handleSignUp)}
           className="w-full max-w-md"
