@@ -1,0 +1,417 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { AiFillStar, AiOutlineStar } from 'react-icons/ai';
+import Header from '../components/Header';
+import Sidebar from '../components/Sidebar/Sidebar';
+import { fetchGames } from '../api/games';
+import type { Game } from '../api/games';
+
+type FilterValues = 'All' | 'Action' | 'RPG' | 'Strategy' | 'Shooter';
+const genres: FilterValues[] = ['All', 'Action', 'RPG', 'Strategy', 'Shooter'];
+const platforms = ['All', 'PC', 'Console', 'Mobile'];
+
+function renderStars(rating: number) {
+  const rounded = Math.round(rating);
+  return Array.from({ length: 5 }).map((_, i) =>
+    i < rounded ? (
+      <AiFillStar
+        key={i}
+        className="text-yellow-400"
+        style={{ fontSize: 13 }}
+      />
+    ) : (
+      <AiOutlineStar
+        key={i}
+        className="text-zinc-600"
+        style={{ fontSize: 13 }}
+      />
+    ),
+  );
+}
+
+function MetacriticBadge({ score }: { score: number }) {
+  const colorClass =
+    score >= 80
+      ? 'border-emerald-500 text-emerald-400'
+      : score >= 60
+        ? 'border-yellow-400 text-yellow-300'
+        : 'border-red-500 text-red-400';
+  return (
+    <span
+      className={`border-2 rounded text-[11px] font-bold px-1 leading-none font-mono tracking-wide ${colorClass}`}
+    >
+      {score}
+    </span>
+  );
+}
+
+function SkeletonCard() {
+  return (
+    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+      <div className="h-36 bg-zinc-800 animate-pulse" />
+      <div className="p-4 space-y-2">
+        <div className="h-3 bg-zinc-800 rounded-full w-3/4 animate-pulse" />
+        <div className="h-3 bg-zinc-800 rounded-full w-2/5 animate-pulse" />
+        <div className="h-3 bg-zinc-800 rounded-full w-1/2 animate-pulse mt-3" />
+      </div>
+    </div>
+  );
+}
+
+export const GamesPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const limit = 9; // fixed page size for 3 rows x 3 cols
+  const cursor = searchParams.get('cursor') || undefined;
+  const searchText = searchParams.get('search') || '';
+  const genreFilter = (searchParams.get('genre') || 'All') as FilterValues;
+  const platformFilter = searchParams.get('platform') || 'All';
+
+  const [prevCursors, setPrevCursors] = useState<(string | undefined)[]>([]);
+  const [games, setGames] = useState<Game[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const debounce = setTimeout(async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        if (searchText.trim().length > 0) {
+          let allGames: Game[] = [];
+          let nextPageCursor: string | undefined = undefined;
+
+          do {
+            const pageData = await fetchGames(limit, nextPageCursor, {
+              genre: genreFilter !== 'All' ? genreFilter : undefined,
+              platform: platformFilter !== 'All' ? platformFilter : undefined,
+              signal: controller.signal,
+            });
+
+            allGames = [...allGames, ...pageData.data];
+            nextPageCursor = pageData.nextCursor || undefined;
+          } while (nextPageCursor && !controller.signal.aborted);
+
+          setGames(allGames);
+          setNextCursor(null);
+          setHasMore(false);
+        } else {
+          const data = await fetchGames(limit, cursor, {
+            genre: genreFilter !== 'All' ? genreFilter : undefined,
+            platform: platformFilter !== 'All' ? platformFilter : undefined,
+            signal: controller.signal,
+          });
+
+          setGames(data.data);
+          setNextCursor(data.nextCursor || null);
+          setHasMore(data.hasMore);
+        }
+      } catch (err) {
+        if ((err as DOMException).name === 'AbortError') return;
+        setError('Unable to fetch games.');
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+
+    return () => {
+      clearTimeout(debounce);
+      controller.abort();
+    };
+  }, [limit, cursor, searchText, genreFilter, platformFilter]);
+
+  const prevSearchParamsRef = useRef(searchParams);
+  useEffect(() => {
+    const prev = prevSearchParamsRef.current;
+    const filterChanged =
+      prev.get('search') !== searchParams.get('search') ||
+      prev.get('genre') !== searchParams.get('genre') ||
+      prev.get('platform') !== searchParams.get('platform');
+    if (filterChanged) setPrevCursors([]);
+    prevSearchParamsRef.current = searchParams;
+  }, [searchParams]);
+
+  const updateParam = (key: string, value: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value === '' || value === 'All') next.delete(key);
+      else next.set(key, value);
+      next.delete('cursor');
+      return next;
+    });
+    setPrevCursors([]);
+  };
+
+  const page = prevCursors.length + 1;
+  const isSearching = !!searchText;
+
+  const visibleGames = useMemo(() => {
+    const normalizedSearch = searchText.trim().toLowerCase();
+
+    return games.filter((game) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        game.name.toLowerCase().includes(normalizedSearch) ||
+        game.genres.join(' ').toLowerCase().includes(normalizedSearch) ||
+        game.platforms.join(' ').toLowerCase().includes(normalizedSearch);
+
+      const matchesGenre =
+        genreFilter === 'All' || game.genres.includes(genreFilter);
+      const matchesPlatform =
+        platformFilter === 'All' || game.platforms.includes(platformFilter);
+
+      return matchesSearch && matchesGenre && matchesPlatform;
+    });
+  }, [games, searchText, genreFilter, platformFilter]);
+
+  return (
+    <div className="bg-zinc-950 h-screen overflow-hidden">
+      <Header />
+
+      <div className="flex h-[calc(100vh-76px)] overflow-hidden">
+        <Sidebar />
+
+        <main className="flex-1 overflow-y-auto flex flex-col px-8 pt-8 pb-6 gap-6 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-800">
+          {/* heading */}
+          <div>
+            <h1
+              style={{
+                background:
+                  'linear-gradient(to bottom right, var(--primary-color), var(--secondary-color))',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                color: 'transparent',
+              }}
+              className="text-4xl"
+            >
+              Browse Games
+            </h1>
+            <p className="text-sm text-violet-400 font-light">
+              Discover your next favorite game from our collection
+            </p>
+          </div>
+
+          {/* filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-48">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600 pointer-events-none"
+                width="15"
+                height="15"
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
+                <circle cx="8.5" cy="8.5" r="5.5" />
+                <path d="M15 15l-3-3" strokeLinecap="round" />
+              </svg>
+              <input
+                value={searchText}
+                onChange={(e) => updateParam('search', e.target.value)}
+                placeholder="Search games…"
+                aria-label="Search games"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10 transition"
+              />
+            </div>
+
+            <div className="w-px h-7 bg-zinc-800 self-center" />
+
+            {/* genre pills */}
+            <div className="flex gap-1.5 flex-wrap">
+              {genres.map((g) => (
+                <button
+                  key={g}
+                  onClick={() => updateParam('genre', g)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap border ${
+                    genreFilter === g
+                      ? 'bg-violet-600 border-violet-600 text-white'
+                      : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
+                  }`}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+
+            <div className="w-px h-7 bg-zinc-800 self-center" />
+
+            {/* platform pills */}
+            <div className="flex gap-1.5 flex-wrap">
+              {platforms.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => updateParam('platform', p)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap border ${
+                    platformFilter === p
+                      ? 'bg-violet-600 border-violet-600 text-white'
+                      : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* content */}
+          {loading ? (
+            <div className="grid grid-cols-3 gap-4">
+              {Array.from({ length: 9 }).map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3">
+              <span className="text-4xl opacity-20">⚠</span>
+              <p className="text-sm text-zinc-500">{error}</p>
+            </div>
+          ) : visibleGames.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3">
+              <span className="text-4xl opacity-20">🎮</span>
+              <p className="text-sm text-zinc-500">
+                No games found for current filters.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-4 flex-1 content-start">
+              {visibleGames.map((game) => (
+                <article
+                  key={game.id}
+                  className="group bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden flex flex-col hover:-translate-y-0.5 hover:border-zinc-700 hover:shadow-2xl hover:shadow-black/60 transition-all duration-200 cursor-pointer"
+                >
+                  {/* image */}
+                  <div className="relative h-36 overflow-hidden bg-zinc-800 shrink-0">
+                    {game.background_image ? (
+                      <img
+                        src={game.background_image}
+                        alt={game.name}
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-zinc-800" />
+                    )}
+                    <div className="absolute inset-x-0 bottom-0 h-14 bg-linear-to-t from-zinc-900 to-transparent" />
+                  </div>
+
+                  {/* body */}
+                  <div className="p-4 flex flex-col flex-1 gap-2">
+                    <h2 className="text-sm font-bold text-white leading-snug tracking-tight truncate">
+                      {game.name}
+                    </h2>
+
+                    <div className="flex flex-wrap gap-1">
+                      {game.genres.slice(0, 2).map((g) => (
+                        <span
+                          key={g}
+                          className="text-[10px] font-medium uppercase tracking-widest text-violet-300 bg-violet-500/10 rounded px-1.5 py-0.5"
+                        >
+                          {g}
+                        </span>
+                      ))}
+                      {game.platforms.slice(0, 2).map((p) => (
+                        <span
+                          key={p}
+                          className="text-[10px] font-medium uppercase tracking-widest text-zinc-500 bg-zinc-800 rounded px-1.5 py-0.5"
+                        >
+                          {p}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between mt-auto pt-2 border-t border-zinc-800">
+                      <div className="flex items-center gap-1">
+                        {renderStars(game.rating)}
+                        <span className="text-xs font-semibold text-white ml-1 font-mono">
+                          {game.rating.toFixed(1)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MetacriticBadge score={game.metacritic_rating} />
+                        <span className="text-[11px] text-zinc-600">
+                          {game.release_date}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+
+          {/* pagination */}
+          {!loading && !error && (
+            <div className="flex items-center justify-center pt-4 border-t border-zinc-800 shrink-0 gap-4">
+              <button
+                onClick={() => {
+                  const prev = prevCursors[prevCursors.length - 1];
+                  setPrevCursors((p) => p.slice(0, -1));
+                  setSearchParams((sp) => {
+                    const next = new URLSearchParams(sp);
+                    if (prev) next.set('cursor', prev);
+                    else next.delete('cursor');
+                    return next;
+                  });
+                }}
+                disabled={isSearching || prevCursors.length === 0}
+                className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-800 hover:border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                >
+                  <path d="M10 3L5 8l5 5" />
+                </svg>
+                Previous
+              </button>
+
+              <span className="text-xs text-zinc-600 font-mono tracking-widest">
+                {isSearching
+                  ? `pg ${page}/from all`
+                  : `pg ${page}${hasMore ? ` · ${page + 1}+` : ''}`}
+              </span>
+
+              <button
+                onClick={() => {
+                  if (!nextCursor) return;
+                  setPrevCursors((p) => [...p, cursor]);
+                  setSearchParams((sp) => {
+                    const next = new URLSearchParams(sp);
+                    next.set('cursor', nextCursor);
+                    return next;
+                  });
+                }}
+                disabled={isSearching || !hasMore}
+                className="flex items-center gap-2 bg-violet-600 border border-violet-600 rounded-lg px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 hover:border-violet-500 disabled:opacity-30 disabled:cursor-not-allowed transition"
+              >
+                Next
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                >
+                  <path d="M6 3l5 5-5 5" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+};
