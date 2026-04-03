@@ -16,14 +16,6 @@ const Header = () => {
     <header className="flex flex-row justify-between items-center text-white p-4 pl-7 pr-7 bg-(--third-color) bg-opacity-95 border-b border-gray-700 backdrop-blur-sm">
       <div className="flex flex-row items-center gap-3">
         <a href="/" className="flex items-center gap-3">
-          <LuGamepad2
-            size={50}
-            className={`text-white rounded-2xl p-3`}
-            style={{
-              background:
-                'linear-gradient(to bottom right, var(--primary-color), var(--secondary-color))',
-            }}
-          />
           <h1
             className="text-3xl font-google font-bold font"
             style={{
@@ -57,14 +49,8 @@ const Header = () => {
             className="cursor-pointer hover:bg-(--primary-color) icon-glow p-2 rounded-xl bg-(--third-color) transition-colors duration-300"
           />
         </a>
-        <a href="/">
+        <a href="/games">
           <LuGamepad2
-            size={38}
-            className="cursor-pointer hover:bg-(--primary-color) icon-glow p-2 rounded-xl bg-(--third-color) transition-colors duration-300"
-          />
-        </a>
-        <a href="/">
-          <FiHome
             size={38}
             className="cursor-pointer hover:bg-(--primary-color) icon-glow p-2 rounded-xl bg-(--third-color) transition-colors duration-300"
           />
