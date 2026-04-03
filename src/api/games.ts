@@ -48,3 +48,8 @@ export const fetchGames = async (
   });
   return response.data;
 };
+
+export const fetchGameById = async (id: string): Promise<Game> => {
+  const response = await api.get<Game>(`/games/${id}`);
+  return response.data;
+};

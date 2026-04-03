@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AiFillStar, AiOutlineStar } from 'react-icons/ai';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar/Sidebar';
@@ -124,6 +124,7 @@ export const GamesPage = () => {
     };
   }, [limit, cursor, searchText, genreFilter, platformFilter]);
 
+  const navigate = useNavigate();
   const prevSearchParamsRef = useRef(searchParams);
   useEffect(() => {
     const prev = prevSearchParamsRef.current;
@@ -191,7 +192,7 @@ export const GamesPage = () => {
             >
               Browse Games
             </h1>
-            <p className="text-sm text-violet-400 font-light">
+            <p className="text-sm text-zinc-400 font-light">
               Discover your next favorite game from our collection
             </p>
           </div>
@@ -283,6 +284,9 @@ export const GamesPage = () => {
               {visibleGames.map((game) => (
                 <article
                   key={game.id}
+                  onClick={() => {
+                    navigate(`/games/${game.id}`);
+                  }}
                   className="group bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden flex flex-col hover:-translate-y-0.5 hover:border-zinc-700 hover:shadow-2xl hover:shadow-black/60 transition-all duration-200 cursor-pointer"
                 >
                   {/* image */}
@@ -292,7 +296,7 @@ export const GamesPage = () => {
                         src={game.background_image}
                         alt={game.name}
                         loading="lazy"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                       />
                     ) : (
                       <div className="w-full h-full bg-zinc-800" />
@@ -375,12 +379,6 @@ export const GamesPage = () => {
                 </svg>
                 Previous
               </button>
-
-              <span className="text-xs text-zinc-600 font-mono tracking-widest">
-                {isSearching
-                  ? `pg ${page}/from all`
-                  : `pg ${page}${hasMore ? ` · ${page + 1}+` : ''}`}
-              </span>
 
               <button
                 onClick={() => {
