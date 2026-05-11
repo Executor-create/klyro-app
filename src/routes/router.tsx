@@ -1,6 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom';
 import Home from '../pages/Home';
-import { AuthProvider } from '../contexts/AuthContext';
 import Login from '../pages/Login';
 import { Profile } from '../pages/Profile';
 import RequireAuth from '../components/RequireAuth';
@@ -40,11 +39,7 @@ const router = createBrowserRouter([
     element: <GameDetail />,
   },
   {
-    element: (
-      <AuthProvider>
-        <RequireAuth />
-      </AuthProvider>
-    ),
+    element: <RequireAuth />,
     children: [
       {
         path: '/',
