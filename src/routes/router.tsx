@@ -11,6 +11,7 @@ import { GamesPage } from '../pages/Games';
 import Collections from '../pages/Collections';
 import CollectionDetail from '../pages/CollectionDetail';
 import GameDetail from '../pages/GameDetail';
+import PostDetail from '../pages/PostDetail';
 import Search from '../pages/Search';
 
 const router = createBrowserRouter([
@@ -56,6 +57,10 @@ const router = createBrowserRouter([
       {
         path: 'collections/:id',
         element: <CollectionDetail />,
+      },
+      {
+        path: 'posts/:id',
+        element: <PostDetail />,
       },
       {
         path: 'search',

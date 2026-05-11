@@ -27,7 +27,6 @@ const items = [
   { name: 'Recommendations', href: '#', icon: FiStar },
   { name: 'Trending', href: '#', icon: FiTrendingUp },
   { name: 'Community', href: '#', icon: FiUsers },
-  { name: 'Friends', href: '#', icon: FiUser },
   { name: 'Messages', href: '#', icon: FiMessageSquare },
   { name: 'Collections', href: '/collections', icon: FiFolder },
   { name: 'Leaderboards', href: '#', icon: FiAward },

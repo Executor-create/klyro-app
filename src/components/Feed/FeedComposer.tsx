@@ -1,29 +1,53 @@
 import { useState } from 'react';
 import { FiImage, FiTag, FiX } from 'react-icons/fi';
 import type { Game } from '../../api/games';
+import { createPost, type CreatePostPayload } from '../../api/posts';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardContent } from '../ui/Card';
 import Button from '../ui/Button';
 import TagGameModal from './TagGameModal';
 
-const FeedComposer = () => {
+type FeedComposerProps = {
+  onPostCreated?: () => void | Promise<void>;
+};
+
+const FeedComposer = ({ onPostCreated }: FeedComposerProps) => {
   const { user } = useAuth();
   const userInitial = user?.username?.trim()?.[0]?.toUpperCase() ?? 'U';
 
   const [isTagGameOpen, setIsTagGameOpen] = useState(false);
   const [taggedGame, setTaggedGame] = useState<Game | null>(null);
   const [postText, setPostText] = useState('');
+  const [isPosting, setIsPosting] = useState(false);
 
   const handleSelectGame = (game: Game) => {
     setTaggedGame(game);
     setIsTagGameOpen(false);
   };
 
-  const handlePost = () => {
-    if (!postText.trim()) return;
-    // TODO: wire up to post creation API
-    setPostText('');
-    setTaggedGame(null);
+  const handlePost = async () => {
+    if (!postText.trim() || isPosting) return;
+
+    const payload: CreatePostPayload = {
+      content: postText.trim(),
+    };
+
+    if (taggedGame) {
+      payload.taggedGameIds = [taggedGame.id];
+    }
+
+    setIsPosting(true);
+
+    try {
+      await createPost(payload);
+      await onPostCreated?.();
+      setPostText('');
+      setTaggedGame(null);
+    } catch (error) {
+      console.error('Failed to create post', error);
+    } finally {
+      setIsPosting(false);
+    }
   };
 
   const canPost = postText.trim().length > 0;
@@ -79,10 +103,10 @@ const FeedComposer = () => {
                   <Button
                     type="button"
                     onClick={handlePost}
-                    disabled={!canPost}
+                    disabled={!canPost || isPosting}
                     className="rounded-lg bg-(--primary-color) px-5 py-2 text-sm font-semibold text-white hover:bg-(--secondary-color) transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    Post
+                    {isPosting ? 'Posting...' : 'Post'}
                   </Button>
                 </div>
               </div>
