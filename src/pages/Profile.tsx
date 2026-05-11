@@ -1,235 +1,29 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useParams } from 'react-router-dom';
+import { useMemo, useState } from 'react';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar/Sidebar';
 import ProfileHeader from '../components/Profile/ProfileHeader';
 import ProfileTabs from '../components/Profile/ProfileTabs';
 import ProfileReviewCard from '../components/Profile/ProfileReviewCard';
-import {
-  followUser,
-  getUser,
-  unfollowUser,
-  type NormalizedUser,
-} from '../api/users';
-import { getUserReviews, type Review } from '../api/reviews';
-import {
-  mergeFollowedStateFromUsers,
-  persistFollowedUsersState,
-  readFollowedUsersState,
-  resolveFollowedState,
-} from '../utils/followedUsersState';
-
-type ProfileRouteState = {
-  user?: NormalizedUser;
-};
+import { useProfileUser } from '../hooks/useProfileUser';
+import { useProfileReviews } from '../hooks/useProfileReviews';
 
 export const Profile = () => {
-  const { id } = useParams<{ id?: string }>();
-  const location = useLocation();
-  const stateUser = (location.state as ProfileRouteState | null)?.user;
-  const isExternalProfile = !!id;
-
   const [selectedTab, setSelectedTab] = useState('Favorite Games');
-  const [userReviews, setUserReviews] = useState<
-    (Review & { gameId?: string; gameName?: string; gameImage?: string })[]
-  >([]);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [reviewsError, setReviewsError] = useState<string | null>(null);
 
-  const [selectedUser, setSelectedUser] = useState<NormalizedUser | null>(
-    isExternalProfile && stateUser?.id === id ? stateUser : null,
+  const {
+    selectedUser,
+    selectedUserLoading,
+    selectedUserError,
+    isExternalProfile,
+    externalIsFollowing,
+    followActionPending,
+    toggleExternalFollow,
+  } = useProfileUser();
+
+  const { userReviews, reviewsLoading, reviewsError } = useProfileReviews(
+    selectedTab,
+    isExternalProfile,
   );
-  const [selectedUserLoading, setSelectedUserLoading] = useState(
-    isExternalProfile && (!stateUser || stateUser.id !== id),
-  );
-  const [selectedUserError, setSelectedUserError] = useState<string | null>(
-    null,
-  );
-  const [followed, setFollowed] = useState<Record<string, boolean>>(() =>
-    readFollowedUsersState(),
-  );
-  const [followActionPending, setFollowActionPending] = useState(false);
-
-  useEffect(() => {
-    persistFollowedUsersState(followed);
-  }, [followed]);
-
-  useEffect(() => {
-    let active = true;
-
-    const loadUser = async () => {
-      if (!isExternalProfile || !id) {
-        if (!active) return;
-        setSelectedUser(null);
-        setSelectedUserLoading(false);
-        setSelectedUserError(null);
-        setFollowActionPending(false);
-        return;
-      }
-      const hasState = stateUser?.id === id;
-
-      if (hasState) {
-        // show provided state immediately for instant render
-        setSelectedUser(stateUser ?? null);
-        if (stateUser) {
-          setFollowed((prev) => mergeFollowedStateFromUsers(prev, [stateUser]));
-        }
-      } else {
-        // no preloaded state — show loader
-        setSelectedUser(null);
-        setSelectedUserLoading(true);
-      }
-
-      setSelectedUserError(null);
-
-      try {
-        const user = await getUser(id);
-        if (!active) return;
-        // always replace with fresh server copy
-        setSelectedUser(user);
-        setFollowed((prev) => mergeFollowedStateFromUsers(prev, [user]));
-      } catch (error) {
-        if (!active) return;
-        if (!hasState) {
-          setSelectedUser(null);
-          setSelectedUserError(
-            (error as Error)?.message || 'Unable to load user profile.',
-          );
-        } else {
-          // Keep the state-based profile visible when background refresh fails.
-          setSelectedUserError(null);
-        }
-      } finally {
-        if (active) {
-          // hide loading if we showed it
-          setSelectedUserLoading(false);
-        }
-      }
-    };
-
-    loadUser();
-
-    return () => {
-      active = false;
-    };
-  }, [id, isExternalProfile, stateUser]);
-
-  useEffect(() => {
-    if (selectedTab !== 'Reviews' || isExternalProfile) {
-      return;
-    }
-
-    let active = true;
-
-    const loadReviews = async () => {
-      setReviewsLoading(true);
-      setReviewsError(null);
-      try {
-        const reviews = await getUserReviews();
-        if (!active) return;
-        setUserReviews(
-          reviews.map((r) => {
-            const rr = r as any;
-            return {
-              ...r,
-              // map nested game object (if present) into flat fields used by UI
-              gameId: rr.game?.id || rr.game_id || rr.gameId,
-              gameName: rr.game?.name || rr.game?.title || rr.gameName,
-              gameImage:
-                rr.game?.background_image ||
-                rr.game?.backgroundImage ||
-                rr.gameImage,
-              date: r.created_at
-                ? new Date(r.created_at).toLocaleDateString()
-                : undefined,
-            };
-          }),
-        );
-      } catch (error) {
-        if (!active) return;
-        console.error('Failed to load reviews:', error);
-        setReviewsError('Unable to load your reviews.');
-        setUserReviews([]);
-      } finally {
-        if (active) setReviewsLoading(false);
-      }
-    };
-
-    loadReviews();
-
-    return () => {
-      active = false;
-    };
-  }, [selectedTab, isExternalProfile]);
-
-  const externalIsFollowing = useMemo(() => {
-    if (!isExternalProfile || !selectedUser) {
-      return undefined;
-    }
-
-    return resolveFollowedState(
-      followed,
-      selectedUser.id,
-      selectedUser.isFollowing,
-    );
-  }, [followed, isExternalProfile, selectedUser]);
-
-  const toggleExternalFollow = async () => {
-    if (!isExternalProfile || !selectedUser || followActionPending) {
-      return;
-    }
-
-    const targetId = selectedUser.id;
-    const wasFollowing = resolveFollowedState(
-      followed,
-      targetId,
-      selectedUser.isFollowing,
-    );
-    const nextFollowing = !wasFollowing;
-
-    setFollowActionPending(true);
-    setFollowed((prev) => ({ ...prev, [targetId]: nextFollowing }));
-    setSelectedUser((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      return {
-        ...prev,
-        isFollowing: nextFollowing,
-        followers: Math.max(
-          0,
-          (prev.followers ?? 0) + (nextFollowing ? 1 : -1),
-        ),
-      };
-    });
-
-    try {
-      if (nextFollowing) {
-        await followUser(targetId);
-      } else {
-        await unfollowUser(targetId);
-      }
-    } catch {
-      setFollowed((prev) => ({ ...prev, [targetId]: wasFollowing }));
-      setSelectedUser((prev) => {
-        if (!prev) {
-          return prev;
-        }
-
-        return {
-          ...prev,
-          isFollowing: wasFollowing,
-          followers: Math.max(
-            0,
-            (prev.followers ?? 0) + (wasFollowing ? 1 : -1),
-          ),
-        };
-      });
-    } finally {
-      setFollowActionPending(false);
-    }
-  };
 
   const profileHeaderData = useMemo(() => {
     if (!isExternalProfile || !selectedUser) return undefined;

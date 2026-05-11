@@ -1,17 +1,14 @@
-import { useEffect, useState, type ComponentType } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  FiAward,
   FiBookmark,
   FiClock,
   FiGrid,
   FiLock,
   FiPlus,
-  FiStar,
   FiUsers,
   FiZap,
 } from 'react-icons/fi';
-import { HiSparkles } from 'react-icons/hi2';
 import {
   getAllCollections,
   type Collection as ApiCollection,
@@ -19,8 +16,13 @@ import {
 import Header from '../components/Header';
 import CreateCollectionForm from '../components/Collections/CreateCollectionForm';
 import Sidebar from '../components/Sidebar/Sidebar';
-
-type IconComponent = ComponentType<{ size?: number; className?: string }>;
+import {
+  type IconComponent,
+  COLLECTION_ICON_MAP,
+  COLLECTION_COLOR_ACCENT_MAP,
+  COLLECTION_COLOR_PREVIEW_MAP,
+  toCollectionTitle,
+} from '../config/collectionsConfig';
 
 type CollectionTile = {
   label: string;
@@ -43,99 +45,12 @@ type CollectionCard = {
   tiles: CollectionTile[];
 };
 
-const iconMap: Record<string, IconComponent> = {
-  Heart: FiStar,
-  Star: FiStar,
-  Trophy: FiAward,
-  Clock: FiClock,
-  Grid: FiGrid,
-  Sparkles: HiSparkles,
-  Flame: FiZap,
-  Zap: FiZap,
-};
-
-const colorAccentMap: Record<string, string> = {
-  Rose: 'from-rose-500/90 to-rose-500/30',
-  Blue: 'from-blue-500/90 to-blue-500/30',
-  Purple: 'from-violet-500/90 to-violet-500/30',
-  Emerald: 'from-emerald-500/90 to-emerald-500/30',
-  Orange: 'from-orange-500/90 to-orange-500/30',
-  Pink: 'from-pink-500/90 to-pink-500/30',
-  Indigo: 'from-indigo-500/90 to-indigo-500/30',
-  Yellow: 'from-amber-400/90 to-amber-500/30',
-};
-
-const colorPreviewMap: Record<string, string[]> = {
-  Rose: [
-    'from-rose-500/80 via-rose-400/20 to-slate-950',
-    'from-fuchsia-500/80 via-rose-400/25 to-slate-950',
-    'from-zinc-100/90 via-zinc-300/35 to-slate-950',
-    'from-orange-500/75 via-rose-500/20 to-slate-950',
-  ],
-  Blue: [
-    'from-blue-500/80 via-sky-400/25 to-slate-950',
-    'from-cyan-500/80 via-blue-400/25 to-slate-950',
-    'from-slate-100/90 via-slate-300/30 to-slate-950',
-    'from-indigo-500/75 via-blue-500/20 to-slate-950',
-  ],
-  Purple: [
-    'from-violet-500/80 via-fuchsia-500/25 to-slate-950',
-    'from-fuchsia-500/80 via-violet-500/20 to-slate-950',
-    'from-zinc-100/90 via-zinc-300/35 to-slate-950',
-    'from-indigo-500/75 via-violet-500/20 to-slate-950',
-  ],
-  Emerald: [
-    'from-emerald-500/80 via-green-400/25 to-slate-950',
-    'from-teal-500/80 via-emerald-400/25 to-slate-950',
-    'from-zinc-100/90 via-zinc-300/35 to-slate-950',
-    'from-lime-500/75 via-emerald-500/20 to-slate-950',
-  ],
-  Orange: [
-    'from-orange-500/80 via-amber-400/25 to-slate-950',
-    'from-amber-500/80 via-orange-400/25 to-slate-950',
-    'from-zinc-100/90 via-zinc-300/35 to-slate-950',
-    'from-rose-500/75 via-orange-500/20 to-slate-950',
-  ],
-  Pink: [
-    'from-pink-500/80 via-rose-400/25 to-slate-950',
-    'from-fuchsia-500/80 via-pink-400/25 to-slate-950',
-    'from-zinc-100/90 via-zinc-300/35 to-slate-950',
-    'from-violet-500/75 via-pink-500/20 to-slate-950',
-  ],
-  Indigo: [
-    'from-indigo-500/80 via-blue-400/25 to-slate-950',
-    'from-violet-500/80 via-indigo-400/25 to-slate-950',
-    'from-zinc-100/90 via-zinc-300/35 to-slate-950',
-    'from-cyan-500/75 via-indigo-500/20 to-slate-950',
-  ],
-  Yellow: [
-    'from-amber-400/80 via-yellow-300/25 to-slate-950',
-    'from-orange-500/80 via-amber-400/25 to-slate-950',
-    'from-zinc-100/90 via-zinc-300/35 to-slate-950',
-    'from-rose-500/75 via-amber-500/20 to-slate-950',
-  ],
-};
-
-const toTitle = (
-  value: string | null | undefined,
-  fallback: string,
-): string => {
-  if (!value) {
-    return fallback;
-  }
-
-  return value
-    .split(/[_\s-]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-    .join(' ');
-};
-
 const buildCollectionCard = (collection: ApiCollection): CollectionCard => {
-  const iconKey = toTitle(collection.icon, 'Grid');
-  const colorKey = toTitle(collection.color, 'Purple');
-  const icon = iconMap[iconKey] ?? FiGrid;
-  const accent = colorAccentMap[colorKey] ?? colorAccentMap.Purple;
+  const iconKey = toCollectionTitle(collection.icon, 'Grid');
+  const colorKey = toCollectionTitle(collection.color, 'Purple');
+  const icon = COLLECTION_ICON_MAP[iconKey] ?? FiGrid;
+  const accent =
+    COLLECTION_COLOR_ACCENT_MAP[colorKey] ?? COLLECTION_COLOR_ACCENT_MAP.Purple;
   const collectionGames =
     ((collection as any).collectionGames as Array<{ game?: any }> | undefined)
       ?.map((collectionGame) => collectionGame.game)
@@ -146,22 +61,23 @@ const buildCollectionCard = (collection: ApiCollection): CollectionCard => {
       ? collectionGames.slice(0, 4).map((game: any, tileIndex: number) => ({
           label: game.name || `Game ${tileIndex + 1}`,
           tint:
-            colorPreviewMap[colorKey]?.[tileIndex] ??
-            colorPreviewMap.Purple[tileIndex],
+            COLLECTION_COLOR_PREVIEW_MAP[colorKey]?.[tileIndex] ??
+            COLLECTION_COLOR_PREVIEW_MAP.Purple[tileIndex],
           imageUrl: game.background_image,
         }))
-      : (colorPreviewMap[colorKey] ?? colorPreviewMap.Purple).map(
-          (tint, tileIndex) => ({
-            label: [
-              iconKey,
-              colorKey,
-              collection.visibility,
-              collection.description ? 'Notes' : 'Empty',
-            ][tileIndex],
-            tint,
-            icon: [FiZap, FiGrid, FiClock, FiBookmark][tileIndex],
-          }),
-        );
+      : (
+          COLLECTION_COLOR_PREVIEW_MAP[colorKey] ??
+          COLLECTION_COLOR_PREVIEW_MAP.Purple
+        ).map((tint, tileIndex) => ({
+          label: [
+            iconKey,
+            colorKey,
+            collection.visibility,
+            collection.description ? 'Notes' : 'Empty',
+          ][tileIndex],
+          tint,
+          icon: [FiZap, FiGrid, FiClock, FiBookmark][tileIndex],
+        }));
 
   return {
     id: collection.id,

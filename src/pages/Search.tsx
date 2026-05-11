@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar/Sidebar';
-import { FiSearch, FiUsers, FiUserPlus } from 'react-icons/fi';
+import { FiSearch, FiUsers } from 'react-icons/fi';
+import { UserRow } from '../components/Search/UserRow';
 import { LuGamepad2 } from 'react-icons/lu';
 import { fetchGames, type Game } from '../api/games';
 import {
@@ -67,7 +68,6 @@ const Search = () => {
 
       try {
         if (trimmedQuery.length > 0) {
-          // fetch all matching users by paging through results
           let allUsers: SearchUser[] = [];
           let next: string | undefined = undefined;
 
@@ -85,7 +85,6 @@ const Search = () => {
           setUsersNextCursor(null);
           setUsersHasMore(false);
         } else {
-          // fetch first page only when empty query
           const page = await fetchUsers(9, undefined, { signal: uCtrl.signal });
           const initialUsers = page.data;
           setUsers(initialUsers);
@@ -144,47 +143,29 @@ const Search = () => {
       setFollowed((prev) => mergeFollowedStateFromUsers(prev, newUsers));
       setUsersNextCursor(page.nextCursor || null);
       setUsersHasMore(!!page.hasMore);
-    } catch (err) {
+    } catch {
       // ignore
     } finally {
       setUsersLoadingMore(false);
     }
   };
 
-  const initials = (name: string) =>
-    name
-      .split(' ')
-      .map((n) => n[0] || '')
-      .slice(0, 2)
-      .join('')
-      .toUpperCase() || 'U';
-
   const updateUserFollowState = (id: string, isFollowing: boolean) => {
     setUsers((prev) =>
       prev.map((user) => {
-        if (user.id !== id) {
-          return user;
-        }
-
+        if (user.id !== id) return user;
         const currentFollowers = user.followers ?? 0;
-        const nextFollowers = Math.max(
-          0,
-          currentFollowers + (isFollowing ? 1 : -1),
-        );
-
         return {
           ...user,
           isFollowing,
-          followers: nextFollowers,
+          followers: Math.max(0, currentFollowers + (isFollowing ? 1 : -1)),
         };
       }),
     );
   };
 
   const toggleFollow = async (id: string) => {
-    if (followingPending[id]) {
-      return;
-    }
+    if (followingPending[id]) return;
 
     const currentUser = users.find((user) => user.id === id);
     const wasFollowing = resolveFollowedState(
@@ -195,8 +176,6 @@ const Search = () => {
     const nextFollowing = !wasFollowing;
 
     setFollowingPending((prev) => ({ ...prev, [id]: true }));
-
-    // optimistic update
     setFollowed((prev) => ({ ...prev, [id]: nextFollowing }));
     updateUserFollowState(id, nextFollowing);
 
@@ -207,10 +186,8 @@ const Search = () => {
         await unfollowUser(id);
       }
     } catch (err) {
-      // revert on unexpected error
       setFollowed((prev) => ({ ...prev, [id]: wasFollowing }));
       updateUserFollowState(id, wasFollowing);
-      // eslint-disable-next-line no-console
       console.error('Failed to toggle follow for', id, err);
     } finally {
       setFollowingPending((prev) => {
@@ -314,79 +291,14 @@ const Search = () => {
                           u.id,
                           u.isFollowing,
                         );
-
                         return (
-                          <li
+                          <UserRow
                             key={u.id}
-                            className="bg-(--third-color) rounded-2xl border border-gray-700 p-4 flex items-center justify-between"
-                          >
-                            <div className="flex items-center gap-4">
-                              <div className="w-14 h-14 rounded-full overflow-hidden bg-zinc-800 flex items-center justify-center text-white text-lg font-bold">
-                                {u.avatar ? (
-                                  // eslint-disable-next-line jsx-a11y/img-redundant-alt
-                                  <img
-                                    src={u.avatar}
-                                    alt={u.username}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <span>{initials(u.username || 'U')}</span>
-                                )}
-                              </div>
-
-                              <div>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    navigate(`/profile/${u.id}`, {
-                                      state: {
-                                        user: {
-                                          ...u,
-                                          isFollowing: isUserFollowed,
-                                        },
-                                      },
-                                    })
-                                  }
-                                  className="text-white font-bold text-lg text-left hover:underline cursor-pointer"
-                                >
-                                  {u.username}
-                                </button>
-                                <div className="text-sm text-zinc-400">
-                                  {u.tag}
-                                </div>
-                                {u.bio && (
-                                  <div className="text-sm text-zinc-400 mt-1">
-                                    {u.bio}
-                                  </div>
-                                )}
-                                <div className="text-sm text-zinc-500 mt-2">
-                                  {(u.followers || 0).toLocaleString()}{' '}
-                                  followers •{' '}
-                                  {(u.following || 0).toLocaleString()}{' '}
-                                  following
-                                </div>
-                              </div>
-                            </div>
-
-                            <div>
-                              <button
-                                onClick={() => toggleFollow(u.id)}
-                                disabled={!!followingPending[u.id]}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer transition whitespace-nowrap ${
-                                  isUserFollowed
-                                    ? 'bg-zinc-800 text-white border border-zinc-700'
-                                    : 'bg-linear-to-r from-violet-500 to-pink-500 text-white'
-                                } ${followingPending[u.id] ? 'opacity-70 cursor-not-allowed' : ''}`}
-                              >
-                                <FiUserPlus />
-                                {followingPending[u.id]
-                                  ? 'Updating...'
-                                  : isUserFollowed
-                                    ? 'Unfollow'
-                                    : 'Follow'}
-                              </button>
-                            </div>
-                          </li>
+                            user={u}
+                            isFollowed={isUserFollowed}
+                            isPending={!!followingPending[u.id]}
+                            onFollow={toggleFollow}
+                          />
                         );
                       })}
                     </ul>
@@ -397,7 +309,6 @@ const Search = () => {
                           onClick={async (e) => {
                             const prevScroll = mainRef.current?.scrollTop ?? 0;
                             await loadMoreUsers();
-                            // restore scroll position after new items render
                             if (mainRef.current) {
                               requestAnimationFrame(() => {
                                 mainRef.current!.scrollTop = prevScroll;

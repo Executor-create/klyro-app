@@ -1,34 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { AiFillStar, AiOutlineStar } from 'react-icons/ai';
 import { FiBox } from 'react-icons/fi';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar/Sidebar';
 import { fetchGames } from '../api/games';
 import type { Game } from '../api/games';
+import { renderStars } from '../utils/renderStars';
 
 type FilterValues = 'All' | 'Action' | 'RPG' | 'Strategy' | 'Shooter';
 const genres: FilterValues[] = ['All', 'Action', 'RPG', 'Strategy', 'Shooter'];
 const platforms = ['All', 'PC', 'Console', 'Mobile'];
-
-function renderStars(rating: number) {
-  const rounded = Math.round(rating);
-  return Array.from({ length: 5 }).map((_, i) =>
-    i < rounded ? (
-      <AiFillStar
-        key={i}
-        className="text-yellow-400"
-        style={{ fontSize: 13 }}
-      />
-    ) : (
-      <AiOutlineStar
-        key={i}
-        className="text-zinc-600"
-        style={{ fontSize: 13 }}
-      />
-    ),
-  );
-}
 
 function MetacriticBadge({ score }: { score: number }) {
   const colorClass =
@@ -88,6 +69,7 @@ export const GamesPage = () => {
 
           do {
             const pageData = await fetchGames(limit, nextPageCursor, {
+              search: searchText.trim(),
               genre: genreFilter !== 'All' ? genreFilter : undefined,
               platform: platformFilter !== 'All' ? platformFilter : undefined,
               signal: controller.signal,
@@ -97,7 +79,11 @@ export const GamesPage = () => {
             nextPageCursor = pageData.nextCursor || undefined;
           } while (nextPageCursor && !controller.signal.aborted);
 
-          setGames(allGames);
+          setGames(
+            allGames.filter((g) =>
+              g.name.toLowerCase().includes(searchText.trim().toLowerCase()),
+            ),
+          );
           setNextCursor(null);
           setHasMore(false);
         } else {
@@ -150,24 +136,9 @@ export const GamesPage = () => {
 
   const isSearching = !!searchText;
 
-  const visibleGames = useMemo(() => {
-    const normalizedSearch = searchText.trim().toLowerCase();
-
-    return games.filter((game) => {
-      const matchesSearch =
-        !normalizedSearch ||
-        game.name.toLowerCase().includes(normalizedSearch) ||
-        game.genres.join(' ').toLowerCase().includes(normalizedSearch) ||
-        game.platforms.join(' ').toLowerCase().includes(normalizedSearch);
-
-      const matchesGenre =
-        genreFilter === 'All' || game.genres.includes(genreFilter);
-      const matchesPlatform =
-        platformFilter === 'All' || game.platforms.includes(platformFilter);
-
-      return matchesSearch && matchesGenre && matchesPlatform;
-    });
-  }, [games, searchText, genreFilter, platformFilter]);
+  // The API already applies search/genre/platform filters server-side.
+  // No additional client-side filtering is needed.
+  const visibleGames = games;
 
   return (
     <div className="bg-zinc-950 h-screen overflow-hidden">
