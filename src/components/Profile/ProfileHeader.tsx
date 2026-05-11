@@ -1,7 +1,7 @@
 import * as React from 'react';
 import Button from '../ui/Button';
 import { FiCalendar, FiUserPlus } from 'react-icons/fi';
-import { FaTrophy, FaUsers, FaUserFriends } from 'react-icons/fa';
+import { FaUsers, FaUserFriends } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 
 type ProfileHeaderData = {
@@ -11,7 +11,6 @@ type ProfileHeaderData = {
   avatarUrl?: string | null;
   joinedAt?: string | null;
   createdAt?: string | null;
-  gamesPlayed?: number;
   followers?: number;
   following?: number;
 };
@@ -24,6 +23,10 @@ type ProfileHeaderProps = {
   isFollowing?: boolean;
   onToggleFollow?: () => void;
   followActionPending?: boolean;
+  friendsCount?: number;
+  onOpenFollowers?: () => void;
+  onOpenFollowing?: () => void;
+  onOpenFriends?: () => void;
 };
 
 const formatJoinedDate = (value?: string | null): string | undefined => {
@@ -41,6 +44,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   isFollowing,
   onToggleFollow,
   followActionPending = false,
+  friendsCount,
+  onOpenFollowers,
+  onOpenFollowing,
+  onOpenFriends,
 }) => {
   const { user, isLoading } = useAuth();
 
@@ -100,15 +107,13 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     ? formatJoinedDate(profileData.joinedAt ?? profileData.createdAt)
     : formatJoinedDate(profile?.joined_at ?? (profile as any)?.created_at);
 
-  const gamesPlayed = hasExternalProfile
-    ? (profileData.gamesPlayed ?? 0)
-    : (profile?.games_played_count ?? 0);
   const followers = hasExternalProfile
     ? (profileData.followers ?? 0)
     : (profile?.followers_count ?? 0);
   const following = hasExternalProfile
     ? (profileData.following ?? 0)
     : (profile?.following_count ?? 0);
+  const friends = friendsCount ?? (profile as any)?.friends_count ?? 0;
 
   return (
     <div className="mx-6 mt-6 rounded-xl bg-(--third-color) border border-gray-700 p-6 text-white">
@@ -169,24 +174,43 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-(--fourth-color) p-6 rounded-xl flex flex-col items-center justify-center border border-gray-700">
-          <FaTrophy size={22} className="text-(--primary-color)" />
-          <div className="text-3xl font-semibold mt-2">{gamesPlayed}</div>
-          <div className="text-sm text-gray-400">Games Played</div>
-        </div>
-
-        <div className="bg-(--fourth-color) p-6 rounded-xl flex flex-col items-center justify-center border border-gray-700">
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <button
+          type="button"
+          onClick={onOpenFollowers}
+          disabled={!onOpenFollowers}
+          className={`bg-(--fourth-color) p-6 rounded-xl flex flex-col items-center justify-center border border-gray-700 transition ${
+            onOpenFollowers ? 'hover:border-gray-500 cursor-pointer' : ''
+          }`}
+        >
           <FaUsers size={22} className="text-(--primary-color)" />
           <div className="text-3xl font-semibold mt-2">{followers}</div>
           <div className="text-sm text-gray-400">Followers</div>
-        </div>
-
-        <div className="bg-(--fourth-color) p-6 rounded-xl flex flex-col items-center justify-center border border-gray-700">
+        </button>
+        <button
+          type="button"
+          onClick={onOpenFollowing}
+          disabled={!onOpenFollowing}
+          className={`bg-(--fourth-color) p-6 rounded-xl flex flex-col items-center justify-center border border-gray-700 transition ${
+            onOpenFollowing ? 'hover:border-gray-500 cursor-pointer' : ''
+          }`}
+        >
           <FaUserFriends size={22} className="text-(--primary-color)" />
           <div className="text-3xl font-semibold mt-2">{following}</div>
           <div className="text-sm text-gray-400">Following</div>
-        </div>
+        </button>
+        <button
+          type="button"
+          onClick={onOpenFriends}
+          disabled={!onOpenFriends}
+          className={`bg-(--fourth-color) p-6 rounded-xl flex flex-col items-center justify-center border border-gray-700 transition ${
+            onOpenFriends ? 'hover:border-gray-500 cursor-pointer' : ''
+          }`}
+        >
+          <FaUserFriends size={22} className="text-(--primary-color)" />
+          <div className="text-3xl font-semibold mt-2">{friends}</div>
+          <div className="text-sm text-gray-400">Friends</div>
+        </button>
       </div>
     </div>
   );

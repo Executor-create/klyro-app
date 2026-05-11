@@ -43,6 +43,7 @@ type RawUsersResponse = {
 };
 
 type RawUserResponse = ApiUser | { data?: ApiUser };
+type RawConnectionsResponse = ApiUser[] | { data?: ApiUser[] };
 
 export type NormalizedUser = {
   id: string;
@@ -228,6 +229,18 @@ const extractSingleUser = (payload: RawUserResponse): ApiUser | null => {
   return null;
 };
 
+const extractUsersList = (payload: RawConnectionsResponse): ApiUser[] => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (payload && typeof payload === 'object' && Array.isArray(payload.data)) {
+    return payload.data;
+  }
+
+  return [];
+};
+
 const getResponseStatus = (error: unknown): number | undefined =>
   (error as any)?.response?.status;
 
@@ -346,6 +359,25 @@ export const getUser = async (
     inflight.delete(cacheKey);
   }
 };
+
+const getConnections = async (path: string): Promise<NormalizedUser[]> => {
+  const response = await api.get<RawConnectionsResponse>(path);
+
+  if (response.status !== 200) {
+    throw new Error('Failed to load connections');
+  }
+
+  return extractUsersList(response.data).map(normalizeUser);
+};
+
+export const getFollowers = async (id: string): Promise<NormalizedUser[]> =>
+  getConnections(`/users/${id}/followers`);
+
+export const getFollowing = async (id: string): Promise<NormalizedUser[]> =>
+  getConnections(`/users/${id}/following`);
+
+export const getFriends = async (id: string): Promise<NormalizedUser[]> =>
+  getConnections(`/users/${id}/friends`);
 
 export const followUser = async (targetId: string): Promise<void> => {
   try {
