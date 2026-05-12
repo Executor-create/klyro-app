@@ -59,9 +59,6 @@ const Feed = () => {
   return (
     <div className="p-6 flex justify-center">
       <div className="w-full max-w-4xl space-y-6">
-        <h2 className="text-3xl font-bold font-google bg-gradient-to-br from-(--primary-color) to-(--secondary-color) bg-clip-text text-transparent">
-          Your Feed
-        </h2>
         <div className="space-y-4">
           <FeedComposer onPostCreated={loadPosts} />
           {isLoading ? (

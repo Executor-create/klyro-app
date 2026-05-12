@@ -123,7 +123,7 @@ const PostDetail = () => {
   };
 
   return (
-    <div className="bg-(--fourth-color) min-h-screen">
+    <div className="bg-zinc-950 min-h-screen">
       <Header />
       <div className="flex h-[calc(100vh-76px)] overflow-hidden">
         <Sidebar />
@@ -132,7 +132,7 @@ const PostDetail = () => {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="mb-6 rounded-lg bg-(--primary-color) px-4 py-2 text-sm font-semibold text-white hover:bg-(--secondary-color) transition-colors"
+              className="mb-6 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 transition-colors"
             >
               ← Back
             </button>
@@ -175,12 +175,12 @@ const PostDetail = () => {
                   }}
                   taggedGames={post.taggedGames}
                 />
-                <section className="mt-8 w-full max-w-4xl rounded-2xl border border-gray-800 bg-(--third-color) p-6">
+                <section className="mt-8 w-full max-w-4xl rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
                   <h3 className="text-lg font-semibold text-white">
                     Comments ({commentCount})
                   </h3>
                   <div className="mt-4 flex flex-wrap items-start gap-3">
-                    <div className="h-10 w-10 rounded-full bg-gray-700 text-white flex items-center justify-center font-semibold shrink-0">
+                    <div className="h-10 w-10 rounded-full bg-zinc-700 text-white flex items-center justify-center font-semibold shrink-0">
                       {userInitial}
                     </div>
                     <textarea
@@ -188,27 +188,27 @@ const PostDetail = () => {
                       value={commentText}
                       onChange={(event) => setCommentText(event.target.value)}
                       placeholder="Write a comment..."
-                      className="flex-1 min-h-[52px] resize-none rounded-xl border border-gray-700 bg-(--fourth-color) px-4 py-3 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-(--primary-color)"
+                      className="flex-1 min-h-[52px] resize-none rounded-xl border border-zinc-800 bg-zinc-800 px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/10"
                     />
                     <button
                       type="button"
                       onClick={handleSubmitComment}
                       disabled={!commentText.trim() || isSubmittingComment}
-                      className="inline-flex items-center gap-2 rounded-lg bg-(--primary-color) px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-(--secondary-color) disabled:cursor-not-allowed disabled:opacity-40"
+                      className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <FiSend size={16} />
                       {isSubmittingComment ? 'Commenting...' : 'Comment'}
                     </button>
                   </div>
-                  <div className="mt-6 space-y-4 border-t border-gray-800 pt-6">
+                  <div className="mt-6 space-y-4 border-t border-zinc-800 pt-6">
                     {commentsLoading ? (
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-zinc-500">
                         Loading comments...
                       </p>
                     ) : commentsError ? (
                       <p className="text-sm text-red-400">{commentsError}</p>
                     ) : comments.length === 0 ? (
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-zinc-500">
                         No comments yet. Be the first to share your thoughts.
                       </p>
                     ) : (
@@ -242,18 +242,18 @@ const PostDetail = () => {
                                 className="h-10 w-10 rounded-full object-cover"
                               />
                             ) : (
-                              <div className="h-10 w-10 rounded-full bg-gray-700 text-white flex items-center justify-center font-semibold shrink-0">
+                              <div className="h-10 w-10 rounded-full bg-zinc-700 text-white flex items-center justify-center font-semibold shrink-0">
                                 {commentInitial}
                               </div>
                             )}
-                            <div className="flex-1 rounded-xl border border-gray-700 bg-(--fourth-color) px-4 py-3">
-                              <div className="flex items-center gap-2 text-xs text-gray-400">
+                            <div className="flex-1 rounded-xl border border-zinc-800 bg-zinc-800 px-4 py-3">
+                              <div className="flex items-center gap-2 text-xs text-zinc-400">
                                 <span className="text-white font-semibold">
                                   {commentUser}
                                 </span>
                                 <span>{commentTimestamp}</span>
                               </div>
-                              <p className="mt-2 text-sm text-gray-200">
+                              <p className="mt-2 text-sm text-zinc-200">
                                 {comment.content}
                               </p>
                             </div>

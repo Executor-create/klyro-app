@@ -13,6 +13,7 @@ import { MdZoomIn } from 'react-icons/md';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar/Sidebar';
 import ReviewsSection from '../components/Game/ReviewsSection';
+import { AddToCollectionModal } from '../components/Game/AddToCollectionModal';
 import { fetchGameById } from '../api/games';
 import type { Game } from '../api/games';
 
@@ -46,6 +47,10 @@ const GameDetail = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(
     null,
   );
+
+  // Add to collection modal state
+  const [showAddToCollectionModal, setShowAddToCollectionModal] =
+    useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -210,7 +215,10 @@ const GameDetail = () => {
                   </div>
 
                   <div className="pt-4 flex items-center gap-3">
-                    <button className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-500">
+                    <button
+                      onClick={() => setShowAddToCollectionModal(true)}
+                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-500"
+                    >
                       <IoAdd size={20} />
                       <span>Add to Collection</span>
                     </button>
@@ -370,6 +378,19 @@ const GameDetail = () => {
             Press ESC to close • Use arrow keys to navigate
           </div>
         </div>
+      )}
+
+      {/* Add to Collection Modal */}
+      {showAddToCollectionModal && game && (
+        <AddToCollectionModal
+          gameId={game.id}
+          gameName={game.name}
+          onClose={() => setShowAddToCollectionModal(false)}
+          onGameAdded={() => {
+            // Optional: Show success message or refresh
+            console.log('Game added to collection');
+          }}
+        />
       )}
     </div>
   );
