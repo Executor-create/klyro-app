@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { getAllPosts, type Post } from '../../api/posts';
 import FeedComposer from './FeedComposer';
 import FeedItem from './FeedItem';
+import { useAuth } from '../../contexts/AuthContext';
 
 const formatRelativeTime = (value?: string) => {
   if (!value) return 'Just now';
@@ -25,6 +26,7 @@ const formatRelativeTime = (value?: string) => {
 };
 
 const Feed = () => {
+  const { user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -46,6 +48,12 @@ const Feed = () => {
 
   useEffect(() => {
     loadPosts();
+  }, [loadPosts]);
+
+  useEffect(() => {
+    const handleFocus = () => loadPosts();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [loadPosts]);
 
   return (
@@ -93,11 +101,13 @@ const Feed = () => {
                 <FeedItem
                   key={post.id}
                   postId={post.id}
+                  userId={user?.id}
                   user={userName}
                   avatar={avatar}
                   content={post.content}
                   timestamp={timestamp}
                   likes={post.likes ?? 0}
+                  isLiked={post.isLiked ?? false}
                   comments={post.comments ?? 0}
                   taggedGames={post.taggedGames}
                 />

@@ -1,10 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FiSend } from 'react-icons/fi';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar/Sidebar';
 import FeedItem from '../components/Feed/FeedItem';
-import { getPostById, type Post } from '../api/posts';
+import {
+  createPostComment,
+  getPostById,
+  getPostComments,
+  type Post,
+  type PostComment,
+} from '../api/posts';
 import { useAuth } from '../contexts/AuthContext';
 
 const formatRelativeTime = (value?: string) => {
@@ -36,6 +42,27 @@ const PostDetail = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [comments, setComments] = useState<PostComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentsError, setCommentsError] = useState<string | null>(null);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const commentInputRef = useRef<HTMLTextAreaElement>(null);
+
+  const loadComments = useCallback(async (postId: string) => {
+    setCommentsLoading(true);
+    setCommentsError(null);
+
+    try {
+      const data = await getPostComments(postId);
+      setComments(data ?? []);
+    } catch (error) {
+      console.error('Failed to load comments', error);
+      setComments([]);
+      setCommentsError('Unable to load comments.');
+    } finally {
+      setCommentsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!id) {
@@ -55,6 +82,11 @@ const PostDetail = () => {
       .finally(() => setIsLoading(false));
   }, [id]);
 
+  useEffect(() => {
+    if (!id) return;
+    loadComments(id);
+  }, [id, loadComments]);
+
   const userName =
     post?.user?.profile?.display_name ??
     post?.user?.username ??
@@ -70,12 +102,25 @@ const PostDetail = () => {
 
   const userInitial = user?.username?.trim()?.[0]?.toUpperCase() ?? 'U';
 
-  const comments = useMemo(
-    () => post?.commentsList ?? [],
-    [post?.commentsList],
-  );
-
   const commentCount = comments.length || post?.comments || 0;
+
+  const handleSubmitComment = async () => {
+    if (!id || !commentText.trim() || isSubmittingComment) return;
+
+    setIsSubmittingComment(true);
+    setCommentsError(null);
+
+    try {
+      const created = await createPostComment(id, commentText.trim());
+      setCommentText('');
+      setComments((prev) => [created, ...prev]);
+    } catch (error) {
+      console.error('Failed to create comment', error);
+      setCommentsError('Unable to post comment.');
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
 
   return (
     <div className="bg-(--fourth-color) min-h-screen">
@@ -111,6 +156,7 @@ const PostDetail = () => {
               <>
                 <FeedItem
                   postId={post.id}
+                  userId={user?.id}
                   linkToPost={false}
                   className="max-w-4xl"
                   user={userName}
@@ -118,7 +164,15 @@ const PostDetail = () => {
                   content={post.content}
                   timestamp={timestamp}
                   likes={post.likes ?? 0}
-                  comments={post.comments ?? 0}
+                  isLiked={post.isLiked ?? false}
+                  comments={commentCount}
+                  onCommentClick={() => {
+                    commentInputRef.current?.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'center',
+                    });
+                    commentInputRef.current?.focus();
+                  }}
                   taggedGames={post.taggedGames}
                 />
                 <section className="mt-8 w-full max-w-4xl rounded-2xl border border-gray-800 bg-(--third-color) p-6">
@@ -130,6 +184,7 @@ const PostDetail = () => {
                       {userInitial}
                     </div>
                     <textarea
+                      ref={commentInputRef}
                       value={commentText}
                       onChange={(event) => setCommentText(event.target.value)}
                       placeholder="Write a comment..."
@@ -137,15 +192,22 @@ const PostDetail = () => {
                     />
                     <button
                       type="button"
-                      disabled={!commentText.trim()}
+                      onClick={handleSubmitComment}
+                      disabled={!commentText.trim() || isSubmittingComment}
                       className="inline-flex items-center gap-2 rounded-lg bg-(--primary-color) px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-(--secondary-color) disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <FiSend size={16} />
-                      Comment
+                      {isSubmittingComment ? 'Commenting...' : 'Comment'}
                     </button>
                   </div>
                   <div className="mt-6 space-y-4 border-t border-gray-800 pt-6">
-                    {comments.length === 0 ? (
+                    {commentsLoading ? (
+                      <p className="text-sm text-gray-500">
+                        Loading comments...
+                      </p>
+                    ) : commentsError ? (
+                      <p className="text-sm text-red-400">{commentsError}</p>
+                    ) : comments.length === 0 ? (
                       <p className="text-sm text-gray-500">
                         No comments yet. Be the first to share your thoughts.
                       </p>

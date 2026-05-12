@@ -53,3 +53,23 @@ export const fetchGameById = async (id: string): Promise<Game> => {
   const response = await api.get<Game>(`/games/${id}`);
   return response.data;
 };
+
+export type PopularGame = {
+  id: string;
+  name: string;
+  background_image: string;
+  rating: number;
+  metacritic_rating: number;
+  reviewCount: number;
+};
+
+export const fetchPopularGames = async (
+  limit = 6,
+  signal?: AbortSignal,
+): Promise<PopularGame[]> => {
+  const response = await api.get<PopularGame[]>('/games/popular/week', {
+    params: { limit },
+    signal,
+  });
+  return response.data;
+};

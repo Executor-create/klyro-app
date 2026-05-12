@@ -12,6 +12,8 @@ import CollectionDetail from '../pages/CollectionDetail';
 import GameDetail from '../pages/GameDetail';
 import PostDetail from '../pages/PostDetail';
 import Search from '../pages/Search';
+import TrendingPage from '../pages/Trending';
+import Recommendations from '../pages/Recommendations';
 
 const router = createBrowserRouter([
   {
@@ -60,6 +62,14 @@ const router = createBrowserRouter([
       {
         path: 'search',
         element: <Search />,
+      },
+      {
+        path: 'trending',
+        element: <TrendingPage />,
+      },
+      {
+        path: 'recommendations',
+        element: <Recommendations />,
       },
       {
         path: 'profile',

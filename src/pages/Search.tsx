@@ -207,163 +207,176 @@ const Search = () => {
 
         <main
           ref={mainRef}
-          className="flex-1 overflow-y-auto flex flex-col px-8 pt-8 pb-6 gap-6 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-800"
+          className="flex-1 overflow-y-auto flex flex-col px-8 pt-8 pb-6 gap-8 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-800"
         >
-          <div>
-            <h1
-              style={{
-                background:
-                  'linear-gradient(to bottom right, var(--primary-color), var(--secondary-color))',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                color: 'transparent',
-              }}
-              className="text-4xl"
-            >
-              Discover
+          {/* heading */}
+          <div className="max-w-2xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/5 px-4 py-2 text-sm text-zinc-300">
+              <FiSearch className="text-violet-300" size={14} />
+              <span>Discover</span>
+            </div>
+            <h1 className="font-google text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+              Find your gaming community
             </h1>
-            <p className="text-sm text-zinc-400 font-light">
-              Find gamers to follow and games to play
+            <p className="mt-4 max-w-xl text-base leading-7 text-zinc-400">
+              Search for gamers to follow and games to play. Build your network
+              and discover new titles.
             </p>
           </div>
 
-          <div className="max-w-4xl">
+          {/* search section */}
+          <div className="flex flex-col gap-4 max-w-2xl">
             <div className="relative">
-              <FiSearch
-                size={18}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 pointer-events-none"
-              />
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600 pointer-events-none"
+                width="15"
+                height="15"
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
+                <circle cx="8.5" cy="8.5" r="5.5" />
+                <path d="M15 15l-3-3" strokeLinecap="round" />
+              </svg>
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search users, games, or genres..."
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-12 pr-4 py-4 text-sm text-white placeholder-zinc-600 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10 transition"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10 transition"
               />
             </div>
 
-            <div className="mt-4">
-              <div className="bg-zinc-900 border border-zinc-800 rounded-full px-1 py-1 flex items-center gap-2 w-max">
-                <button
-                  onClick={() => setActiveTab('users')}
-                  className={`flex items-center gap-3 px-4 py-2 rounded-full text-sm font-semibold transition ${
-                    activeTab === 'users'
-                      ? 'bg-(--third-color) text-white'
-                      : 'text-zinc-400'
-                  }`}
-                >
-                  <FiUsers />
-                  <span>Users</span>
-                  <span className="text-xs text-zinc-500">
-                    ({users.length})
-                  </span>
-                </button>
+            {/* tabs */}
+            <div className="flex gap-1">
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition border ${
+                  activeTab === 'users'
+                    ? 'bg-violet-600 border-violet-600 text-white'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
+                }`}
+              >
+                <FiUsers size={15} />
+                <span>Users</span>
+                <span className="text-xs text-zinc-500">({users.length})</span>
+              </button>
 
-                <button
-                  onClick={() => setActiveTab('games')}
-                  className={`flex items-center gap-3 px-4 py-2 rounded-full text-sm font-semibold transition ${
-                    activeTab === 'games'
-                      ? 'bg-(--third-color) text-white'
-                      : 'text-zinc-400'
-                  }`}
-                >
-                  <LuGamepad2 />
-                  <span>Games</span>
-                  <span className="text-xs text-zinc-500">
-                    ({games.length})
-                  </span>
-                </button>
-              </div>
+              <button
+                onClick={() => setActiveTab('games')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition border ${
+                  activeTab === 'games'
+                    ? 'bg-violet-600 border-violet-600 text-white'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
+                }`}
+              >
+                <LuGamepad2 size={15} />
+                <span>Games</span>
+                <span className="text-xs text-zinc-500">({games.length})</span>
+              </button>
             </div>
+          </div>
 
-            <div className="mt-6">
-              {activeTab === 'users' ? (
-                usersLoading && users.length === 0 ? (
-                  <div className="text-zinc-500">Searching users…</div>
-                ) : users.length === 0 ? (
-                  <div className="text-zinc-500">No users found.</div>
-                ) : (
-                  <>
-                    <ul className="space-y-4">
-                      {users.map((u) => {
-                        const isUserFollowed = resolveFollowedState(
-                          followed,
-                          u.id,
-                          u.isFollowing,
-                        );
-                        return (
-                          <UserRow
-                            key={u.id}
-                            user={u}
-                            isFollowed={isUserFollowed}
-                            isPending={!!followingPending[u.id]}
-                            onFollow={toggleFollow}
-                          />
-                        );
-                      })}
-                    </ul>
-                    {usersHasMore && (
-                      <div className="mt-4 flex justify-center">
-                        <button
-                          type="button"
-                          onClick={async (e) => {
-                            const prevScroll = mainRef.current?.scrollTop ?? 0;
-                            await loadMoreUsers();
-                            if (mainRef.current) {
-                              requestAnimationFrame(() => {
-                                mainRef.current!.scrollTop = prevScroll;
-                              });
-                            }
-                            (e.currentTarget as HTMLButtonElement).blur();
-                          }}
-                          disabled={usersLoadingMore}
-                          className="px-4 py-2 bg-violet-600 text-white rounded-lg"
-                        >
-                          {usersLoadingMore ? 'Loading...' : 'Load more users'}
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )
-              ) : gamesLoading ? (
-                <div className="text-zinc-500">Searching games…</div>
-              ) : games.length === 0 ? (
-                <div className="text-zinc-500">No games found.</div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {games.map((g) => (
-                    <article
-                      key={g.id}
-                      onClick={() => navigate(`/games/${g.id}`)}
-                      className="group bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden cursor-pointer"
-                    >
-                      <div className="relative h-36 overflow-hidden bg-zinc-800 shrink-0">
-                        {g.background_image ? (
-                          <img
-                            src={g.background_image}
-                            alt={g.name}
-                            loading="lazy"
-                            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-zinc-800" />
-                        )}
-                        <div className="absolute inset-x-0 bottom-0 h-14 bg-linear-to-t from-zinc-900 to-transparent" />
-                      </div>
-
-                      <div className="p-4 flex flex-col flex-1 gap-2">
-                        <h2 className="text-sm font-bold text-white leading-snug tracking-tight truncate">
-                          {g.name}
-                        </h2>
-                        <div className="text-sm text-zinc-500">
-                          {g.release_date}
-                        </div>
-                      </div>
-                    </article>
-                  ))}
+          {/* content */}
+          <div className="flex-1">
+            {activeTab === 'users' ? (
+              usersLoading && users.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-12">
+                  <span className="text-4xl opacity-20">👥</span>
+                  <p className="text-sm text-zinc-500">Searching users…</p>
                 </div>
-              )}
-            </div>
+              ) : users.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-12">
+                  <span className="text-4xl opacity-20">👥</span>
+                  <p className="text-sm text-zinc-500">No users found.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <ul className="space-y-4">
+                    {users.map((u) => {
+                      const isUserFollowed = resolveFollowedState(
+                        followed,
+                        u.id,
+                        u.isFollowing,
+                      );
+                      return (
+                        <UserRow
+                          key={u.id}
+                          user={u}
+                          isFollowed={isUserFollowed}
+                          isPending={!!followingPending[u.id]}
+                          onFollow={toggleFollow}
+                        />
+                      );
+                    })}
+                  </ul>
+                  {usersHasMore && (
+                    <div className="flex justify-center pt-4">
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          const prevScroll = mainRef.current?.scrollTop ?? 0;
+                          await loadMoreUsers();
+                          if (mainRef.current) {
+                            requestAnimationFrame(() => {
+                              mainRef.current!.scrollTop = prevScroll;
+                            });
+                          }
+                          (e.currentTarget as HTMLButtonElement).blur();
+                        }}
+                        disabled={usersLoadingMore}
+                        className="px-4 py-2.5 bg-violet-600 text-white rounded-lg text-sm font-medium transition hover:bg-violet-700 disabled:opacity-50"
+                      >
+                        {usersLoadingMore ? 'Loading...' : 'Load more users'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            ) : gamesLoading ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-12">
+                <span className="text-4xl opacity-20">🎮</span>
+                <p className="text-sm text-zinc-500">Searching games…</p>
+              </div>
+            ) : games.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-12">
+                <span className="text-4xl opacity-20">🎮</span>
+                <p className="text-sm text-zinc-500">No games found.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {games.map((g) => (
+                  <article
+                    key={g.id}
+                    onClick={() => navigate(`/games/${g.id}`)}
+                    className="group bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden cursor-pointer transition hover:border-zinc-700 hover:shadow-lg hover:shadow-zinc-900/50"
+                  >
+                    <div className="relative h-36 overflow-hidden bg-zinc-800 shrink-0">
+                      {g.background_image ? (
+                        <img
+                          src={g.background_image}
+                          alt={g.name}
+                          loading="lazy"
+                          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-zinc-800" />
+                      )}
+                      <div className="absolute inset-x-0 bottom-0 h-14 bg-linear-to-t from-zinc-900 to-transparent" />
+                    </div>
+
+                    <div className="p-4 flex flex-col flex-1 gap-2">
+                      <h2 className="text-sm font-bold text-white leading-snug tracking-tight truncate">
+                        {g.name}
+                      </h2>
+                      <div className="text-sm text-zinc-500">
+                        {g.release_date}
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
           </div>
         </main>
       </div>
