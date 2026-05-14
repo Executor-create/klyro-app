@@ -93,6 +93,12 @@ const Feed = () => {
                   post.updated_at ??
                   post.updatedAt,
               );
+              const commentCount =
+                post.comments ??
+                (post as any).commentsCount ??
+                (post as any).comment_count ??
+                post.commentsList?.length ??
+                0;
 
               return (
                 <FeedItem
@@ -105,7 +111,7 @@ const Feed = () => {
                   timestamp={timestamp}
                   likes={post.likes ?? 0}
                   isLiked={post.isLiked ?? false}
-                  comments={post.comments ?? 0}
+                  comments={commentCount}
                   taggedGames={post.taggedGames}
                 />
               );

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiHeart, FiMessageCircle } from 'react-icons/fi';
 import { likePost, unlikePost } from '../../api/posts';
@@ -43,6 +43,15 @@ const FeedItem = ({
   const [liked, setLiked] = useState(isLiked);
   const [likeCount, setLikeCount] = useState(likes);
   const [isLikePending, setIsLikePending] = useState(false);
+
+  // Sync liked/likeCount when props update (e.g. after async data load)
+  useEffect(() => {
+    setLiked(isLiked);
+  }, [isLiked]);
+
+  useEffect(() => {
+    setLikeCount(likes);
+  }, [likes]);
 
   const userInitial = user?.trim()?.[0]?.toUpperCase() ?? 'U';
 

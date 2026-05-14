@@ -16,6 +16,10 @@ export type Game = {
   updated_at: string;
 };
 
+export type FavoriteGame = Game & {
+  favoritedAt?: string;
+};
+
 interface FetchGamesOptions {
   search?: string;
   genre?: string;
@@ -52,6 +56,53 @@ export const fetchGames = async (
 export const fetchGameById = async (id: string): Promise<Game> => {
   const response = await api.get<Game>(`/games/${id}`);
   return response.data;
+};
+
+type FavoriteGameResponse =
+  | Array<{ game: Game; favorited_at?: string }>
+  | { data: Array<{ game: Game; favorited_at?: string }> };
+
+const unwrapFavoriteGames = (payload: FavoriteGameResponse): FavoriteGame[] => {
+  if (Array.isArray(payload)) {
+    return payload.map(({ game, favorited_at }) => ({
+      ...game,
+      favoritedAt: favorited_at,
+    }));
+  }
+
+  if (payload && typeof payload === 'object' && Array.isArray(payload.data)) {
+    return payload.data.map(({ game, favorited_at }) => ({
+      ...game,
+      favoritedAt: favorited_at,
+    }));
+  }
+
+  return [];
+};
+
+export const getUserFavoriteGames = async (
+  userId: string,
+): Promise<FavoriteGame[]> => {
+  const response = await api.get<FavoriteGameResponse>(
+    `/games/user/${userId}/favorites`,
+  );
+  return unwrapFavoriteGames(response.data);
+};
+
+export const favoriteGame = async (id: string): Promise<void> => {
+  const response = await api.post(`/games/${id}/favorite`);
+
+  if (response.status !== 200 && response.status !== 201 && response.status !== 204) {
+    throw new Error('Failed to favorite game');
+  }
+};
+
+export const unfavoriteGame = async (id: string): Promise<void> => {
+  const response = await api.delete(`/games/${id}/favorite`);
+
+  if (response.status !== 200 && response.status !== 201 && response.status !== 204) {
+    throw new Error('Failed to unfavorite game');
+  }
 };
 
 export type PopularGame = {

@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar/Sidebar';
 import ProfileHeader from '../components/Profile/ProfileHeader';
@@ -11,6 +12,7 @@ import { useProfileReviews } from '../hooks/useProfileReviews';
 import { useAuth } from '../contexts/AuthContext';
 import FeedItem from '../components/Feed/FeedItem';
 import { getPostsByUser, type Post } from '../api/posts';
+import { getUserFavoriteGames, type FavoriteGame } from '../api/games';
 import {
   followUser,
   getFollowers,
@@ -48,6 +50,7 @@ const formatRelativeTime = (value?: string) => {
 };
 
 export const Profile = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [selectedTab, setSelectedTab] = useState('Favorite Games');
 
@@ -69,6 +72,11 @@ export const Profile = () => {
   const [activityPosts, setActivityPosts] = useState<Post[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
   const [activityError, setActivityError] = useState<string | null>(null);
+  const [favoriteGames, setFavoriteGames] = useState<FavoriteGame[]>([]);
+  const [favoriteGamesLoading, setFavoriteGamesLoading] = useState(false);
+  const [favoriteGamesError, setFavoriteGamesError] = useState<string | null>(
+    null,
+  );
 
   const profileId = isExternalProfile
     ? selectedUser?.id
@@ -111,6 +119,27 @@ export const Profile = () => {
       following: selectedUser.following,
     };
   }, [isExternalProfile, selectedUser]);
+
+  const formatFavoriteTime = useCallback((value?: string) => {
+    if (!value) return 'Recently added';
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Recently added';
+
+    const diffMs = Date.now() - date.getTime();
+    const minutes = Math.floor(diffMs / 60000);
+
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+
+    return date.toLocaleDateString();
+  }, []);
 
   const loadFollowers = useCallback(async () => {
     if (!profileId) return;
@@ -218,6 +247,38 @@ export const Profile = () => {
     };
   }, [profileId, selectedTab]);
 
+  useEffect(() => {
+    if (selectedTab !== 'Favorite Games' || !profileId) return;
+
+    let mounted = true;
+
+    const loadFavoriteGames = async () => {
+      setFavoriteGamesLoading(true);
+      setFavoriteGamesError(null);
+
+      try {
+        const games = await getUserFavoriteGames(profileId);
+        if (!mounted) return;
+
+        setFavoriteGames(games);
+      } catch (error) {
+        console.error('Failed to load favorite games', error);
+        if (!mounted) return;
+
+        setFavoriteGamesError('Unable to load favorite games.');
+        setFavoriteGames([]);
+      } finally {
+        if (mounted) setFavoriteGamesLoading(false);
+      }
+    };
+
+    loadFavoriteGames();
+
+    return () => {
+      mounted = false;
+    };
+  }, [profileId, selectedTab]);
+
   const updateFollowState = useCallback(
     (
       setter: Dispatch<SetStateAction<ConnectionsState>>,
@@ -275,23 +336,15 @@ export const Profile = () => {
     [updateFollowState],
   );
 
-  const sampleGames = [
-    {
-      id: 1,
-      title: 'Cyber Drift',
-      img: 'https://images.unsplash.com/photo-1542751371-2d3a6a9b4a6d?auto=format&fit=crop&w=800&q=60',
+  const navigateToProfileFromConnections = useCallback(
+    (target: NormalizedUser) => {
+      setFollowersOpen(false);
+      setFollowingOpen(false);
+      setFriendsOpen(false);
+      navigate(`/profile/${target.id}`);
     },
-    {
-      id: 2,
-      title: 'Neon Racer',
-      img: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=60',
-    },
-    {
-      id: 3,
-      title: 'Arena Legends',
-      img: 'https://images.unsplash.com/photo-1499084732479-de2c02d45fc4?auto=format&fit=crop&w=800&q=60',
-    },
-  ];
+    [navigate],
+  );
 
   return (
     <div className="bg-zinc-950 h-screen overflow-hidden">
@@ -327,31 +380,70 @@ export const Profile = () => {
                 <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-widest">
                   Favorite Games
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {sampleGames.map((g) => (
-                    <article
-                      key={g.id}
-                      className="group bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden hover:border-zinc-700 hover:shadow-xl hover:shadow-black/40 transition-all duration-200 cursor-pointer"
-                    >
-                      <div className="relative h-36 overflow-hidden bg-zinc-800">
-                        <img
-                          src={g.img}
-                          alt={g.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute inset-x-0 bottom-0 h-10 bg-linear-to-t from-zinc-900 to-transparent" />
-                      </div>
-                      <div className="p-4">
-                        <h4 className="text-white font-semibold text-sm truncate">
-                          {g.title}
-                        </h4>
-                        <p className="text-xs text-zinc-500 mt-1">
-                          Short description of the game.
-                        </p>
-                      </div>
-                    </article>
-                  ))}
-                </div>
+                {favoriteGamesLoading && (
+                  <div className="flex flex-col items-center justify-center gap-3 py-12">
+                    <span className="text-4xl opacity-20">🎮</span>
+                    <p className="text-sm text-zinc-500">
+                      Loading favorite games…
+                    </p>
+                  </div>
+                )}
+                {favoriteGamesError && (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400 text-sm text-center">
+                    {favoriteGamesError}
+                  </div>
+                )}
+                {!favoriteGamesLoading &&
+                  !favoriteGamesError &&
+                  favoriteGames.length === 0 && (
+                    <div className="flex flex-col items-center justify-center gap-3 py-12">
+                      <span className="text-4xl opacity-20">🎮</span>
+                      <p className="text-sm text-zinc-500">
+                        No favorite games yet.
+                      </p>
+                    </div>
+                  )}
+                {!favoriteGamesLoading &&
+                  !favoriteGamesError &&
+                  favoriteGames.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {favoriteGames.map((game) => (
+                        <article
+                          key={game.id}
+                          className="group overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 transition-all duration-200 hover:border-zinc-700 hover:shadow-xl hover:shadow-black/40"
+                        >
+                          <div className="relative h-36 overflow-hidden bg-zinc-800">
+                            <img
+                              src={game.background_image}
+                              alt={game.name}
+                              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                            <div className="absolute inset-x-0 bottom-0 h-10 bg-linear-to-t from-zinc-900 to-transparent" />
+                          </div>
+                          <div className="space-y-2 p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <h4 className="truncate text-sm font-semibold text-white">
+                                {game.name}
+                              </h4>
+                              <span className="shrink-0 rounded-full border border-zinc-700 px-2 py-0.5 text-[11px] font-semibold text-zinc-300">
+                                {typeof game.rating === 'number'
+                                  ? game.rating.toFixed(1)
+                                  : 'N/A'}
+                              </span>
+                            </div>
+                            <p className="line-clamp-2 text-xs text-zinc-500">
+                              {game.genres?.length
+                                ? game.genres.join(', ')
+                                : 'Game'}
+                            </p>
+                            <p className="text-[11px] text-zinc-600">
+                              Favorited {formatFavoriteTime(game.favoritedAt)}
+                            </p>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
               </div>
             )}
 
@@ -404,6 +496,13 @@ export const Profile = () => {
                             post.updatedAt,
                         );
 
+                        const commentCount =
+                          post.comments ??
+                          (post as any).commentsCount ??
+                          (post as any).comment_count ??
+                          post.commentsList?.length ??
+                          0;
+
                         return (
                           <FeedItem
                             key={post.id}
@@ -415,7 +514,7 @@ export const Profile = () => {
                             timestamp={timestamp}
                             likes={post.likes ?? 0}
                             isLiked={post.isLiked ?? false}
-                            comments={post.comments ?? 0}
+                            comments={commentCount}
                             taggedGames={post.taggedGames}
                           />
                         );
@@ -483,6 +582,7 @@ export const Profile = () => {
         isLoading={followersState.isLoading}
         error={followersState.error}
         onClose={() => setFollowersOpen(false)}
+        onUserClick={navigateToProfileFromConnections}
         onToggleFollow={(target) => toggleFollowFromList(target, 'followers')}
         pendingFollowIds={pendingFollowIds}
         currentUserId={profileId ?? null}
@@ -496,6 +596,7 @@ export const Profile = () => {
         isLoading={followingState.isLoading}
         error={followingState.error}
         onClose={() => setFollowingOpen(false)}
+        onUserClick={navigateToProfileFromConnections}
         onToggleFollow={(target) => toggleFollowFromList(target, 'following')}
         pendingFollowIds={pendingFollowIds}
         currentUserId={profileId ?? null}
@@ -509,6 +610,7 @@ export const Profile = () => {
         isLoading={friendsState.isLoading}
         error={friendsState.error}
         onClose={() => setFriendsOpen(false)}
+        onUserClick={navigateToProfileFromConnections}
         onToggleFollow={(target) => toggleFollowFromList(target, 'friends')}
         pendingFollowIds={pendingFollowIds}
         currentUserId={profileId ?? null}

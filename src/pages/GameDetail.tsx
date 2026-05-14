@@ -6,6 +6,7 @@ import {
   IoChevronBack,
   IoChevronForward,
   IoAdd,
+  IoHeart,
   IoHeartOutline,
   IoShareSocialOutline,
 } from 'react-icons/io5';
@@ -14,8 +15,14 @@ import Header from '../components/Header';
 import Sidebar from '../components/Sidebar/Sidebar';
 import ReviewsSection from '../components/Game/ReviewsSection';
 import { AddToCollectionModal } from '../components/Game/AddToCollectionModal';
-import { fetchGameById } from '../api/games';
+import {
+  fetchGameById,
+  favoriteGame,
+  getUserFavoriteGames,
+  unfavoriteGame,
+} from '../api/games';
 import type { Game } from '../api/games';
+import { useAuth } from '../contexts/AuthContext';
 
 function renderStars(rating: number) {
   const rounded = Math.round(rating);
@@ -39,9 +46,13 @@ function renderStars(rating: number) {
 const GameDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [game, setGame] = useState<Game | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [favoritePending, setFavoritePending] = useState(false);
 
   // Lightbox state
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(
@@ -67,6 +78,39 @@ const GameDetail = () => {
       })
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (!id || !user?.id) {
+      setIsFavorite(false);
+      setFavoriteLoading(false);
+      return;
+    }
+
+    let active = true;
+
+    const loadFavorites = async () => {
+      setFavoriteLoading(true);
+
+      try {
+        const favorites = await getUserFavoriteGames(user.id);
+        if (!active) return;
+
+        setIsFavorite(favorites.some((favorite) => favorite.id === id));
+      } catch (error) {
+        console.error('Failed to load favorite games', error);
+        if (!active) return;
+        setIsFavorite(false);
+      } finally {
+        if (active) setFavoriteLoading(false);
+      }
+    };
+
+    loadFavorites();
+
+    return () => {
+      active = false;
+    };
+  }, [id, user?.id]);
 
   // Handle keyboard navigation in lightbox
   useEffect(() => {
@@ -98,6 +142,27 @@ const GameDetail = () => {
     setSelectedImageIndex((prev) =>
       prev === game.screenshots.length - 1 ? 0 : prev! + 1,
     );
+  };
+
+  const handleFavoriteToggle = async () => {
+    if (!game || favoritePending) return;
+
+    const nextFavorite = !isFavorite;
+    setIsFavorite(nextFavorite);
+    setFavoritePending(true);
+
+    try {
+      if (nextFavorite) {
+        await favoriteGame(game.id);
+      } else {
+        await unfavoriteGame(game.id);
+      }
+    } catch (error) {
+      console.error('Failed to update favorite state', error);
+      setIsFavorite(!nextFavorite);
+    } finally {
+      setFavoritePending(false);
+    }
   };
 
   return (
@@ -222,8 +287,25 @@ const GameDetail = () => {
                       <IoAdd size={20} />
                       <span>Add to Collection</span>
                     </button>
-                    <button className="flex h-12 w-12 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900 text-zinc-200 transition hover:border-zinc-600 hover:text-white">
-                      <IoHeartOutline size={20} />
+                    <button
+                      type="button"
+                      onClick={handleFavoriteToggle}
+                      disabled={favoriteLoading || favoritePending}
+                      className={`flex h-12 w-12 items-center justify-center rounded-2xl border transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                        isFavorite
+                          ? 'border-red-500 bg-red-500/10 text-red-400 hover:border-red-400 hover:text-red-300'
+                          : 'border-zinc-800 bg-zinc-900 text-zinc-200 hover:border-zinc-600 hover:text-white'
+                      }`}
+                      aria-pressed={isFavorite}
+                      aria-label={
+                        isFavorite ? 'Unfavorite game' : 'Favorite game'
+                      }
+                    >
+                      {isFavorite ? (
+                        <IoHeart size={20} />
+                      ) : (
+                        <IoHeartOutline size={20} />
+                      )}
                     </button>
                     <button className="flex h-12 w-12 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900 text-zinc-200 transition hover:border-zinc-600 hover:text-white">
                       <IoShareSocialOutline size={18} />

@@ -9,6 +9,7 @@ type ProfileConnectionsModalProps = {
   isLoading?: boolean;
   error?: string | null;
   onClose: () => void;
+  onUserClick?: (user: NormalizedUser) => void;
   onToggleFollow?: (user: NormalizedUser) => void;
   pendingFollowIds?: Record<string, boolean>;
   currentUserId?: string | null;
@@ -22,6 +23,7 @@ const ProfileConnectionsModal = ({
   isLoading = false,
   error = null,
   onClose,
+  onUserClick,
   onToggleFollow,
   pendingFollowIds,
   currentUserId,
@@ -88,7 +90,11 @@ const ProfileConnectionsModal = ({
                   key={user.id}
                   className="flex items-center justify-between gap-4 rounded-xl bg-zinc-800/40 border border-zinc-800 hover:border-zinc-700 p-3 transition"
                 >
-                  <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => onUserClick?.(user)}
+                    className="flex items-center gap-3 text-left min-w-0 flex-1 cursor-pointer"
+                  >
                     <div className="h-10 w-10 rounded-full overflow-hidden bg-zinc-700 text-zinc-300 flex items-center justify-center font-semibold text-sm shrink-0">
                       {user.avatar ? (
                         <img
@@ -111,12 +117,15 @@ const ProfileConnectionsModal = ({
                         {followers.toLocaleString()} followers
                       </div>
                     </div>
-                  </div>
+                  </button>
 
                   {onToggleFollow && !isSelf && (
                     <button
                       type="button"
-                      onClick={() => onToggleFollow(user)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onToggleFollow(user);
+                      }}
                       disabled={isPending}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap ${
                         isFollowing
