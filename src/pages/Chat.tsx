@@ -277,7 +277,7 @@ const Chat = () => {
       <div className="flex h-[calc(100vh-76px)] overflow-hidden">
         <Sidebar />
 
-        <main className="flex-1 overflow-y-auto px-8 pt-8 pb-6 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-800">
+        <main className="page-enter flex-1 overflow-y-auto px-8 pt-8 pb-6 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-800">
           <div className="w-full max-w-6xl mx-auto flex gap-6 h-[calc(100vh-116px)]">
             <aside className="w-80 flex flex-col gap-4">
               <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden flex flex-col h-full">
@@ -394,16 +394,20 @@ const Chat = () => {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') send();
                     }}
-                    disabled={!activeRoomId || joinedRoomId !== activeRoomId}
+                    disabled={
+                      !activeRoomId || joinedRoomId !== activeRoomId || joining
+                    }
                     placeholder="Write a message..."
                     className="flex-1 bg-zinc-800 border border-zinc-700 rounded-full px-4 py-2 text-sm text-white outline-none focus:border-violet-500"
                   />
                   <button
                     onClick={send}
-                    disabled={!activeRoomId || joinedRoomId !== activeRoomId}
+                    disabled={
+                      !activeRoomId || joinedRoomId !== activeRoomId || joining
+                    }
                     className="bg-violet-600 hover:bg-violet-700 disabled:bg-zinc-700 disabled:text-zinc-400 text-white px-4 py-2 rounded-full text-sm"
                   >
-                    Send
+                    {joining ? 'Joining...' : 'Send'}
                   </button>
                 </div>
               </div>

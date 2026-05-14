@@ -1,6 +1,6 @@
 @import 'tailwindcss';
 
-@theme {
+:root {
   --primary-color: #6366f1;
   --secondary-color: #8b5cf6;
   --third-color: #161721;
@@ -19,4 +19,124 @@
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* ── Keyframe animations ───────────────────────────────────────── */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer-sweep {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes logo-glow {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.2) drop-shadow(0 0 8px rgba(99, 102, 241, 0.5));
+  }
+}
+
+/* ── Utility animation classes ─────────────────────────────────── */
+
+.animate-fade-in {
+  animation: fade-in 0.35s ease both;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.45s ease both;
+}
+
+.page-enter {
+  animation: fade-in-up 180ms ease-out both;
+  will-change: opacity, transform;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.animate-logo-glow {
+  animation: logo-glow 3s ease-in-out infinite;
+}
+
+/* Shimmer skeleton override */
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-sweep 1.6s linear infinite;
+}
+
+/* Stagger helpers — pair with framer-motion or add delay manually */
+.delay-50 {
+  animation-delay: 50ms;
+}
+.delay-100 {
+  animation-delay: 100ms;
+}
+.delay-150 {
+  animation-delay: 150ms;
+}
+.delay-200 {
+  animation-delay: 200ms;
+}
+.delay-300 {
+  animation-delay: 300ms;
+}
+.delay-400 {
+  animation-delay: 400ms;
+}
+.delay-500 {
+  animation-delay: 500ms;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

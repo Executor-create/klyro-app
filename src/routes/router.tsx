@@ -1,20 +1,26 @@
+import { lazy } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
-import Home from '../pages/Home';
-import Login from '../pages/Login';
-import { Profile } from '../pages/Profile';
 import RequireAuth from '../components/RequireAuth';
-import OTP from '../pages/OTP';
-import ForgotPasswordPage from '../pages/ForgotPassword';
-import ResetPasswordPage from '../pages/ResetPassword';
-import { GamesPage } from '../pages/Games';
-import Collections from '../pages/Collections';
-import CollectionDetail from '../pages/CollectionDetail';
-import GameDetail from '../pages/GameDetail';
-import PostDetail from '../pages/PostDetail';
-import Search from '../pages/Search';
-import TrendingPage from '../pages/Trending';
-import Recommendations from '../pages/Recommendations';
-import Chat from '../pages/Chat';
+
+const Home = lazy(() => import('../pages/Home'));
+const Login = lazy(() => import('../pages/Login'));
+const Profile = lazy(() =>
+  import('../pages/Profile').then((module) => ({ default: module.Profile })),
+);
+const OTP = lazy(() => import('../pages/OTP'));
+const ForgotPasswordPage = lazy(() => import('../pages/ForgotPassword'));
+const ResetPasswordPage = lazy(() => import('../pages/ResetPassword'));
+const GamesPage = lazy(() =>
+  import('../pages/Games').then((module) => ({ default: module.GamesPage })),
+);
+const Collections = lazy(() => import('../pages/Collections'));
+const CollectionDetail = lazy(() => import('../pages/CollectionDetail'));
+const GameDetail = lazy(() => import('../pages/GameDetail'));
+const PostDetail = lazy(() => import('../pages/PostDetail'));
+const Search = lazy(() => import('../pages/Search'));
+const TrendingPage = lazy(() => import('../pages/Trending'));
+const Recommendations = lazy(() => import('../pages/Recommendations'));
+const Chat = lazy(() => import('../pages/Chat'));
 
 const router = createBrowserRouter([
   {

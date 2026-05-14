@@ -2,6 +2,7 @@ import { FiSearch } from 'react-icons/fi';
 import { MdAccountCircle } from 'react-icons/md';
 import { Link, useNavigate } from 'react-router-dom';
 import { useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 
 const Header = () => {
   const [query, setQuery] = useState('');
@@ -19,11 +20,18 @@ const Header = () => {
   };
 
   return (
-    <header className="flex flex-row justify-between items-center text-white px-7 py-4 bg-zinc-950 border-b border-zinc-800">
+    <motion.header
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
+      className="flex flex-row justify-between items-center text-white px-7 py-4 bg-zinc-950 border-b border-zinc-800"
+    >
       {/* Logo */}
       <Link to="/" className="flex items-center gap-3 shrink-0">
-        <h1
-          className="text-3xl font-google font-bold"
+        <motion.h1
+          className="text-3xl font-google font-bold animate-logo-glow"
+          whileHover={{ scale: 1.05 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 15 }}
           style={{
             background: 'linear-gradient(to bottom right, #6366f1, #8b5cf6)',
             WebkitBackgroundClip: 'text',
@@ -33,7 +41,7 @@ const Header = () => {
           }}
         >
           Klyro
-        </h1>
+        </motion.h1>
       </Link>
 
       {/* Search bar */}
@@ -49,7 +57,7 @@ const Header = () => {
             onChange={(e) => setQuery(e.target.value)}
             type="text"
             placeholder="Search games, users..."
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10 transition"
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all duration-200"
           />
         </div>
       </form>
@@ -57,13 +65,19 @@ const Header = () => {
       {/* Right actions */}
       <div className="flex items-center gap-2 shrink-0">
         <Link to="/profile">
-          <MdAccountCircle
-            size={38}
-            className="cursor-pointer text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-800 rounded-xl p-1.5 hover:bg-zinc-800 hover:border-zinc-700 transition-all duration-200"
-          />
+          <motion.div
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+          >
+            <MdAccountCircle
+              size={38}
+              className="cursor-pointer text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-800 rounded-xl p-1.5 hover:bg-zinc-800 hover:border-zinc-700 transition-all duration-200"
+            />
+          </motion.div>
         </Link>
       </div>
-    </header>
+    </motion.header>
   );
 };
 

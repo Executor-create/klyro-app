@@ -64,7 +64,7 @@ function TrendingGameCard({
         ) : (
           <div className="w-full h-full bg-zinc-800" />
         )}
-        <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-zinc-900 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-14 bg-linear-to-t from-zinc-900 to-transparent" />
       </div>
       <div className="p-4 flex flex-col flex-1 gap-2">
         <h3 className="text-sm font-bold text-white leading-snug tracking-tight truncate">
@@ -134,7 +134,7 @@ const TrendingPage = () => {
   }, []);
 
   useEffect(() => {
-    if (activeTab !== 'Posts') return;
+    if (activeTab !== 'Posts' || posts.length > 0) return;
     let isMounted = true;
     setPostsLoading(true);
     setPostsError(null);
@@ -151,14 +151,14 @@ const TrendingPage = () => {
     return () => {
       isMounted = false;
     };
-  }, [activeTab]);
+  }, [activeTab, posts.length]);
 
   return (
     <div className="bg-zinc-950 h-screen overflow-hidden">
       <Header />
       <div className="flex h-[calc(100vh-76px)] overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto flex flex-col px-8 pt-8 pb-8 gap-7 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-800">
+        <main className="page-enter flex-1 overflow-y-auto flex flex-col px-8 pt-8 pb-8 gap-7 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-800">
           {/* ── Page heading ── */}
           <div className="max-w-2xl">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/5 px-4 py-2 text-sm text-zinc-300">

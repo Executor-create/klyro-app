@@ -26,7 +26,7 @@ export function useProfileReviews(
   const [reviewsError, setReviewsError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isExternalProfile) return;
+    if (isExternalProfile || selectedTab !== 'Reviews') return;
 
     let active = true;
 
@@ -68,7 +68,7 @@ export function useProfileReviews(
     return () => {
       active = false;
     };
-  }, [isExternalProfile]);
+  }, [isExternalProfile, selectedTab]);
 
   return { userReviews, reviewsLoading, reviewsError };
 }

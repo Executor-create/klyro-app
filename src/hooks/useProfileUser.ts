@@ -107,7 +107,10 @@ export function useProfileUser(): UseProfileUserReturn {
     return () => {
       active = false;
     };
-  }, [id, isExternalProfile, stateUser]);
+    // Use stateUser?.id (primitive) instead of the whole stateUser object to
+    // avoid re-running the effect when location.state produces a new reference.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, isExternalProfile, stateUser?.id]);
 
   const externalIsFollowing = useMemo(() => {
     if (!isExternalProfile || !selectedUser) return undefined;

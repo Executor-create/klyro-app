@@ -2,6 +2,7 @@ import * as React from 'react';
 import { FiCalendar, FiEdit2, FiUserPlus, FiUserCheck } from 'react-icons/fi';
 import { FaUsers, FaUserFriends } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
+import { motion, type Variants } from 'framer-motion';
 
 type ProfileHeaderData = {
   displayName: string;
@@ -58,6 +59,15 @@ const SkeletonBlock = () => (
     </div>
   </div>
 );
+
+const statCardVariants: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.35, delay: i * 0.08 },
+  }),
+};
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   profileData,
@@ -149,27 +159,49 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   ];
 
   return (
-    <div className="rounded-2xl bg-zinc-900 border border-zinc-800 overflow-hidden">
-      {/* Banner */}
-      <div className="h-28 bg-gradient-to-r from-violet-600/30 via-purple-600/20 to-zinc-900" />
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45 }}
+      className="rounded-2xl bg-zinc-900 border border-zinc-800 overflow-hidden"
+    >
+      {/* Banner with shimmer */}
+      <div className="h-28 bg-gradient-to-r from-violet-600/30 via-purple-600/20 to-zinc-900 relative overflow-hidden">
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"
+          animate={{ x: ['-100%', '200%'] }}
+          transition={{
+            duration: 2.5,
+            repeat: Infinity,
+            ease: 'linear',
+            repeatDelay: 3,
+          }}
+        />
+      </div>
 
       <div className="px-6 pb-6">
         {/* Avatar + actions row */}
         <div className="flex items-end justify-between -mt-12 mb-4">
-          <div className="ring-4 ring-zinc-900 rounded-full">
+          <motion.div
+            className="ring-4 ring-zinc-900 rounded-full"
+            whileHover={{ scale: 1.06 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+          >
             <img
               src={avatar}
               alt={displayName}
               className="w-24 h-24 rounded-full object-cover bg-zinc-800"
             />
-          </div>
+          </motion.div>
 
           <div className="flex items-center gap-2 pb-1">
             {showExternalFollowButton ? (
-              <button
+              <motion.button
                 type="button"
                 onClick={onToggleFollow}
                 disabled={followActionPending}
+                whileHover={!followActionPending ? { scale: 1.04 } : {}}
+                whileTap={!followActionPending ? { scale: 0.97 } : {}}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap ${
                   isFollowing
                     ? 'bg-zinc-800 text-white border border-zinc-700 hover:bg-zinc-700'
@@ -186,51 +218,74 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   : isFollowing
                     ? 'Following'
                     : 'Follow'}
-              </button>
+              </motion.button>
             ) : (
               showEditButton &&
               !hasExternalProfile && (
-                <button
+                <motion.button
                   type="button"
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.97 }}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-zinc-300 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 hover:text-white transition"
                 >
                   <FiEdit2 size={14} />
                   Edit Profile
-                </button>
+                </motion.button>
               )
             )}
           </div>
         </div>
 
         {/* Name + handle */}
-        <div className="mb-3">
+        <motion.div
+          className="mb-3"
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+        >
           <h2 className="font-google text-2xl font-semibold text-white leading-tight">
             {displayName}
           </h2>
           {handle && <p className="text-sm text-zinc-500 mt-0.5">{handle}</p>}
-        </div>
+        </motion.div>
 
         {/* Bio */}
         {bio && (
-          <p className="text-sm text-zinc-400 leading-relaxed mb-3 max-w-xl">
+          <motion.p
+            className="text-sm text-zinc-400 leading-relaxed mb-3 max-w-xl"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.18 }}
+          >
             {bio}
-          </p>
+          </motion.p>
         )}
 
         {/* Joined date */}
-        <div className="flex items-center gap-1.5 text-xs text-zinc-500 mb-6">
+        <motion.div
+          className="flex items-center gap-1.5 text-xs text-zinc-500 mb-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: 0.22 }}
+        >
           <FiCalendar size={13} />
           <span>{joined ? `Joined ${joined}` : 'Join date unknown'}</span>
-        </div>
+        </motion.div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
-          {statCards.map(({ icon, value, label, onClick }) => (
-            <button
+          {statCards.map(({ icon, value, label, onClick }, i) => (
+            <motion.button
               key={label}
               type="button"
               onClick={onClick}
               disabled={!onClick}
+              custom={i}
+              variants={statCardVariants}
+              initial="hidden"
+              animate="visible"
+              whileHover={onClick ? { scale: 1.04, y: -2 } : {}}
+              whileTap={onClick ? { scale: 0.97 } : {}}
               className={`bg-zinc-950 rounded-xl border border-zinc-800 p-4 flex flex-col items-center gap-2 transition ${
                 onClick
                   ? 'hover:border-zinc-700 hover:bg-zinc-800/50 cursor-pointer'
@@ -242,11 +297,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 {value.toLocaleString()}
               </span>
               <span className="text-xs text-zinc-500">{label}</span>
-            </button>
+            </motion.button>
           ))}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

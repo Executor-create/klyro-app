@@ -30,23 +30,38 @@ const Recommendations = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+    let isActive = true;
+
     const loadRecommendations = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const data = await getRecommendations(12);
+        const data = await getRecommendations(12, controller.signal);
+
+        if (!isActive) return;
+
         setRecommendations(data.data);
         setPersonalized(data.personalized);
       } catch (err) {
+        if ((err as DOMException).name === 'AbortError') return;
+
         setError('Unable to load recommendations.');
         console.error('Failed to load recommendations:', err);
       } finally {
+        if (!isActive) return;
+
         setLoading(false);
       }
     };
 
     loadRecommendations();
+
+    return () => {
+      isActive = false;
+      controller.abort();
+    };
   }, []);
 
   return (
@@ -56,7 +71,7 @@ const Recommendations = () => {
       <div className="flex h-[calc(100vh-76px)] overflow-hidden">
         <Sidebar />
 
-        <main className="flex-1 overflow-y-auto flex flex-col px-8 pt-8 pb-6 gap-8 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-800">
+        <main className="page-enter flex-1 overflow-y-auto flex flex-col px-8 pt-8 pb-6 gap-8 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-800">
           {/* heading */}
           <div className="max-w-2xl">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/5 px-4 py-2 text-sm text-zinc-300">
@@ -122,48 +137,54 @@ const Recommendations = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {recommendations.map((game) => (
-                <article
-                  key={game.id}
-                  onClick={() => navigate(`/games/${game.id}`)}
-                  className="group relative bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden flex flex-col hover:-translate-y-0.5 hover:border-zinc-700 hover:shadow-2xl hover:shadow-black/60 transition-all duration-200 cursor-pointer"
-                >
-                  {/* Confidence badge */}
-                  <div className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-emerald-600 text-white text-[11px] font-bold px-2.5 py-1 rounded-md">
-                    <span>📈</span>
-                    <span>{Math.round(game.score * 100)}%</span>
-                  </div>
+              {recommendations.map((game) => {
+                const score = Math.max(0, Math.min(1, game.score ?? 0));
+                const rating = game.rating ?? 0;
+                const releaseDate =
+                  game.release_date || 'Release date unavailable';
+                const imageSrc =
+                  game.background_image ||
+                  'https://via.placeholder.com/640x360';
 
-                  <div className="relative h-40 overflow-hidden bg-zinc-800 shrink-0">
-                    {game.background_image ? (
+                return (
+                  <article
+                    key={game.id}
+                    onClick={() => navigate(`/games/${game.id}`)}
+                    className="group relative bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden flex flex-col hover:-translate-y-0.5 hover:border-zinc-700 hover:shadow-2xl hover:shadow-black/60 transition-all duration-200 cursor-pointer"
+                  >
+                    {/* Confidence badge */}
+                    <div className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-emerald-600 text-white text-[11px] font-bold px-2.5 py-1 rounded-md">
+                      <span>📈</span>
+                      <span>{Math.round(score * 100)}%</span>
+                    </div>
+
+                    <div className="relative h-40 overflow-hidden bg-zinc-800 shrink-0">
                       <img
-                        src={game.background_image}
+                        src={imageSrc}
                         alt={game.name}
                         loading="lazy"
                         className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                       />
-                    ) : (
-                      <div className="w-full h-full bg-zinc-800" />
-                    )}
-                    <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-zinc-900 to-transparent" />
-                  </div>
-
-                  <div className="p-4 flex flex-col flex-1 gap-2">
-                    <h3 className="text-sm font-bold text-white leading-snug tracking-tight truncate">
-                      {game.name}
-                    </h3>
-                    <p className="text-[11px] text-zinc-500 font-mono">
-                      {game.release_date}
-                    </p>
-                    <div className="flex items-center gap-1 mt-auto pt-2 border-t border-zinc-800">
-                      {renderStars(game.rating ?? 0)}
-                      <span className="text-xs font-semibold text-white ml-1 font-mono">
-                        {(game.rating ?? 0).toFixed(1)}
-                      </span>
+                      <div className="absolute inset-x-0 bottom-0 h-14 bg-linear-to-t from-zinc-900 to-transparent"></div>
                     </div>
-                  </div>
-                </article>
-              ))}
+
+                    <div className="p-4 flex flex-col flex-1 gap-2">
+                      <h3 className="text-sm font-bold text-white leading-snug tracking-tight truncate">
+                        {game.name}
+                      </h3>
+                      <p className="text-[11px] text-zinc-500 font-mono">
+                        {releaseDate}
+                      </p>
+                      <div className="flex items-center gap-1 mt-auto pt-2 border-t border-zinc-800">
+                        {renderStars(rating)}
+                        <span className="text-xs font-semibold text-white ml-1 font-mono">
+                          {rating.toFixed(1)}
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )}
         </main>

@@ -29,12 +29,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
+        // Batch both updates in one render
         setUser(null);
+        setIsLoading(false);
         return;
       }
 
       const response = await api.get('/auth/me');
+      // Batch both updates in one render so consumers only re-render once
       setUser(response.data);
+      setIsLoading(false);
     } catch (error: any) {
       console.error('Error loading user profile:', error);
 
@@ -45,8 +49,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.removeItem('refreshToken');
       }
 
+      // Batch both updates in one render
       setUser(null);
-    } finally {
       setIsLoading(false);
     }
   }, []);
@@ -59,26 +63,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // refreshUser can be called externally (e.g. after login) to re-fetch the
   // current user without triggering the isLoading spinner on the whole app.
   const refreshUser = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setUser(null);
-        return;
-      }
-
-      const response = await api.get('/auth/me');
-      setUser(response.data);
-    } catch (error: any) {
-      console.error('Error refreshing user profile:', error);
-
-      if (error?.response?.status === 401) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-      }
-
-      setUser(null);
-    }
-  }, []);
+    await fetchUser();
+  }, [fetchUser]);
 
   return (
     <AuthContext.Provider value={{ user, isLoading, refreshUser }}>

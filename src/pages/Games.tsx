@@ -10,6 +10,7 @@ import { renderStars } from '../utils/renderStars';
 type FilterValues = 'All' | 'Action' | 'RPG' | 'Strategy' | 'Shooter';
 const genres: FilterValues[] = ['All', 'Action', 'RPG', 'Strategy', 'Shooter'];
 const platforms = ['All', 'PC', 'Console', 'Mobile'];
+const PAGE_SIZE = 9; // fixed page size for 3 rows x 3 cols
 
 function MetacriticBadge({ score }: { score: number }) {
   const colorClass =
@@ -43,7 +44,6 @@ function SkeletonCard() {
 export const GamesPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const limit = 9; // fixed page size for 3 rows x 3 cols
   const cursor = searchParams.get('cursor') || undefined;
   const searchText = searchParams.get('search') || '';
   const genreFilter = (searchParams.get('genre') || 'All') as FilterValues;
@@ -68,7 +68,7 @@ export const GamesPage = () => {
           let nextPageCursor: string | undefined = undefined;
 
           do {
-            const pageData = await fetchGames(limit, nextPageCursor, {
+            const pageData = await fetchGames(PAGE_SIZE, nextPageCursor, {
               search: searchText.trim(),
               genre: genreFilter !== 'All' ? genreFilter : undefined,
               platform: platformFilter !== 'All' ? platformFilter : undefined,
@@ -87,7 +87,7 @@ export const GamesPage = () => {
           setNextCursor(null);
           setHasMore(false);
         } else {
-          const data = await fetchGames(limit, cursor, {
+          const data = await fetchGames(PAGE_SIZE, cursor, {
             genre: genreFilter !== 'All' ? genreFilter : undefined,
             platform: platformFilter !== 'All' ? platformFilter : undefined,
             signal: controller.signal,
@@ -109,7 +109,7 @@ export const GamesPage = () => {
       clearTimeout(debounce);
       controller.abort();
     };
-  }, [limit, cursor, searchText, genreFilter, platformFilter]);
+  }, [cursor, searchText, genreFilter, platformFilter]);
 
   const navigate = useNavigate();
   const prevSearchParamsRef = useRef(searchParams);

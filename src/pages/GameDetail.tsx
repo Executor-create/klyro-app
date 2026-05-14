@@ -112,24 +112,6 @@ const GameDetail = () => {
     };
   }, [id, user?.id]);
 
-  // Handle keyboard navigation in lightbox
-  useEffect(() => {
-    if (selectedImageIndex === null || !game) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setSelectedImageIndex(null);
-      } else if (e.key === 'ArrowLeft') {
-        handlePrevImage();
-      } else if (e.key === 'ArrowRight') {
-        handleNextImage();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedImageIndex, game]);
-
   const handlePrevImage = () => {
     if (!game || selectedImageIndex === null) return;
     setSelectedImageIndex((prev) =>
@@ -143,6 +125,30 @@ const GameDetail = () => {
       prev === game.screenshots.length - 1 ? 0 : prev! + 1,
     );
   };
+
+  // Handle keyboard navigation in lightbox
+  useEffect(() => {
+    if (selectedImageIndex === null || !game) return;
+
+    const screenshotCount = game.screenshots.length;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedImageIndex(null);
+      } else if (e.key === 'ArrowLeft') {
+        setSelectedImageIndex((prev) =>
+          prev === null ? null : prev === 0 ? screenshotCount - 1 : prev - 1,
+        );
+      } else if (e.key === 'ArrowRight') {
+        setSelectedImageIndex((prev) =>
+          prev === null ? null : prev === screenshotCount - 1 ? 0 : prev + 1,
+        );
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedImageIndex, game]);
 
   const handleFavoriteToggle = async () => {
     if (!game || favoritePending) return;
@@ -170,7 +176,7 @@ const GameDetail = () => {
       <Header />
       <div className="flex h-[calc(100vh-76px)] overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto p-8 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-800">
+        <main className="page-enter flex-1 overflow-y-auto p-8 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-800">
           <button
             onClick={() => navigate(-1)}
             className="mb-6 px-5 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-500 transition"

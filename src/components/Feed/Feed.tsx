@@ -50,12 +50,6 @@ const Feed = () => {
     loadPosts();
   }, [loadPosts]);
 
-  useEffect(() => {
-    const handleFocus = () => loadPosts();
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [loadPosts]);
-
   return (
     <div className="p-6 flex justify-center">
       <div className="w-full max-w-4xl space-y-6">

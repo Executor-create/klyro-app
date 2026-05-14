@@ -5,6 +5,7 @@ import { createPost, type CreatePostPayload } from '../../api/posts';
 import { useAuth } from '../../contexts/AuthContext';
 import Button from '../ui/Button';
 import TagGameModal from './TagGameModal';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type FeedComposerProps = {
   onPostCreated?: () => void | Promise<void>;
@@ -53,64 +54,90 @@ const FeedComposer = ({ onPostCreated }: FeedComposerProps) => {
 
   return (
     <>
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full"
+      >
         <div className="flex gap-4">
-          <div className="h-12 w-12 rounded-full bg-zinc-700 text-white flex items-center justify-center font-semibold shrink-0">
+          <motion.div
+            className="h-12 w-12 rounded-full bg-zinc-700 text-white flex items-center justify-center font-semibold shrink-0"
+            whileHover={{ scale: 1.08 }}
+            transition={{ type: 'spring', stiffness: 300 }}
+          >
             {userInitial}
-          </div>
+          </motion.div>
           <div className="flex-1">
             <textarea
               value={postText}
               onChange={(e) => setPostText(e.target.value)}
-              className="w-full min-h-[110px] resize-none rounded-xl border border-zinc-800 bg-zinc-800 px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/10"
+              className="w-full min-h-[110px] resize-none rounded-xl border border-zinc-800 bg-zinc-800 px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all duration-200"
               placeholder="What's on your mind? Share your gaming thoughts..."
             />
-            {taggedGame && (
-              <div className="mt-3 flex items-center gap-2 text-sm text-zinc-300">
-                <span className="flex items-center gap-2 rounded-full bg-zinc-800 px-3 py-1">
-                  <FiTag size={12} />
-                  <span className="text-zinc-200">{taggedGame.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => setTaggedGame(null)}
-                    className="text-zinc-400 hover:text-white"
-                    aria-label="Remove tagged game"
-                  >
-                    <FiX size={12} />
-                  </button>
-                </span>
-              </div>
-            )}
+            <AnimatePresence>
+              {taggedGame && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.85, y: -6 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.85, y: -6 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                  className="mt-3 flex items-center gap-2 text-sm text-zinc-300"
+                >
+                  <span className="flex items-center gap-2 rounded-full bg-zinc-800 px-3 py-1">
+                    <FiTag size={12} />
+                    <span className="text-zinc-200">{taggedGame.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setTaggedGame(null)}
+                      className="text-zinc-400 hover:text-white"
+                      aria-label="Remove tagged game"
+                    >
+                      <FiX size={12} />
+                    </button>
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
             <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-zinc-800 pt-4">
-              <button
+              <motion.button
                 type="button"
+                whileHover={{ scale: 1.05, color: '#fff' }}
+                whileTap={{ scale: 0.95 }}
                 className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors"
               >
                 <FiImage size={18} />
                 <span>Image</span>
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 type="button"
                 onClick={() => setIsTagGameOpen(true)}
+                whileHover={{ scale: 1.05, color: '#fff' }}
+                whileTap={{ scale: 0.95 }}
                 className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors"
               >
                 <FiTag size={18} />
                 <span>Tag Game</span>
-              </button>
+              </motion.button>
               <div className="ml-auto">
-                <Button
-                  type="button"
-                  onClick={handlePost}
-                  disabled={!canPost || isPosting}
-                  className="rounded-lg bg-violet-600 px-5 py-2 text-sm font-semibold text-white hover:bg-violet-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                <motion.div
+                  whileHover={canPost && !isPosting ? { scale: 1.04 } : {}}
+                  whileTap={canPost && !isPosting ? { scale: 0.97 } : {}}
                 >
-                  {isPosting ? 'Posting...' : 'Post'}
-                </Button>
+                  <Button
+                    type="button"
+                    onClick={handlePost}
+                    disabled={!canPost || isPosting}
+                    className="rounded-lg bg-violet-600 px-5 py-2 text-sm font-semibold text-white hover:bg-violet-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {isPosting ? 'Posting...' : 'Post'}
+                  </Button>
+                </motion.div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
       <TagGameModal
         open={isTagGameOpen}
         onClose={() => setIsTagGameOpen(false)}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiHeart, FiMessageCircle } from 'react-icons/fi';
 import { likePost, unlikePost } from '../../api/posts';
+import { motion } from 'framer-motion';
 
 interface FeedItemProps {
   postId?: string;
@@ -91,18 +92,30 @@ const FeedItem = ({
     );
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      whileHover={{ y: -2, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
+      className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full"
+    >
       <div className="flex items-center gap-3 mb-3">
         {avatar ? (
-          <img
+          <motion.img
             src={avatar}
             alt={user}
             className="w-10 h-10 rounded-full object-cover"
+            whileHover={{ scale: 1.08 }}
+            transition={{ type: 'spring', stiffness: 300 }}
           />
         ) : (
-          <div className="h-10 w-10 rounded-full bg-zinc-700 text-white flex items-center justify-center font-semibold shrink-0">
+          <motion.div
+            className="h-10 w-10 rounded-full bg-zinc-700 text-white flex items-center justify-center font-semibold shrink-0"
+            whileHover={{ scale: 1.08 }}
+            transition={{ type: 'spring', stiffness: 300 }}
+          >
             {userInitial}
-          </div>
+          </motion.div>
         )}
         <div>
           <button
@@ -140,17 +153,24 @@ const FeedItem = ({
         </div>
       )}
       <div className="flex items-center gap-4 text-zinc-400 border-t border-zinc-800 pt-4">
-        <button
+        <motion.button
           onClick={handleLike}
           disabled={!postId || isLikePending}
+          whileTap={postId && !isLikePending ? { scale: 1.3 } : {}}
+          transition={{ type: 'spring', stiffness: 500, damping: 15 }}
           className={`flex items-center gap-2 transition-colors duration-200 cursor-pointer ${
             liked ? 'text-red-500' : 'hover:text-red-500'
           } ${isLikePending ? 'opacity-60 cursor-not-allowed' : ''}`}
         >
-          <FiHeart size={20} className={liked ? 'fill-red-500' : ''} />
+          <motion.span
+            animate={liked ? { scale: [1, 1.4, 1] } : { scale: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            <FiHeart size={20} className={liked ? 'fill-red-500' : ''} />
+          </motion.span>
           <span>{likeCount}</span>
-        </button>
-        <button
+        </motion.button>
+        <motion.button
           onClick={() => {
             if (onCommentClick) {
               onCommentClick();
@@ -159,13 +179,16 @@ const FeedItem = ({
             }
           }}
           disabled={!postId && !onCommentClick}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 15 }}
           className="flex items-center gap-2 hover:text-blue-500 transition-colors duration-200 cursor-pointer disabled:cursor-default"
         >
           <FiMessageCircle size={20} />
           <span>{comments}</span>
-        </button>
+        </motion.button>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

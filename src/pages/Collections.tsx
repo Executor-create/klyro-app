@@ -247,7 +247,28 @@ const Collections = () => {
   };
 
   useEffect(() => {
-    void loadCollections();
+    let active = true;
+
+    getAllCollections()
+      .then((data) => {
+        if (!active) return;
+        setCollections(
+          data.map((collection) => buildCollectionCard(collection)),
+        );
+      })
+      .catch((loadError) => {
+        if (!active) return;
+        console.error('Failed to load collections', loadError);
+        setError('Unable to load collections right now.');
+        setCollections([]);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   return (
@@ -257,7 +278,7 @@ const Collections = () => {
       <div className="flex h-[calc(100vh-76px)] overflow-hidden">
         <Sidebar />
 
-        <main className="relative flex-1 overflow-y-auto px-8 pb-8 pt-8 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-800">
+        <main className="page-enter relative flex-1 overflow-y-auto px-8 pb-8 pt-8 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-800">
           <div className="relative flex flex-col gap-8">
             <section className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-2xl">

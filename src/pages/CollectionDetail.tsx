@@ -262,7 +262,7 @@ const CollectionDetail = () => {
       <Header />
       <div className="flex h-[calc(100vh-76px)] overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto p-8 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-800">
+        <main className="page-enter flex-1 overflow-y-auto p-8 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-800">
           <button
             onClick={() => navigate(-1)}
             className="mb-6 px-5 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-500 transition"
