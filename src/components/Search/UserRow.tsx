@@ -29,8 +29,8 @@ export function UserRow({
   const navigate = useNavigate();
 
   return (
-    <li className="bg-(--third-color) rounded-2xl border border-gray-700 p-4 flex items-center justify-between">
-      <div className="flex items-center gap-4">
+    <li className="bg-zinc-900/80 rounded-2xl border border-zinc-800 p-4 flex items-center justify-between gap-4 backdrop-blur-sm transition hover:border-zinc-700">
+      <div className="flex items-center gap-4 min-w-0">
         <div className="w-14 h-14 rounded-full overflow-hidden bg-zinc-800 flex items-center justify-center text-white text-lg font-bold">
           {user.avatar ? (
             <img
@@ -43,7 +43,7 @@ export function UserRow({
           )}
         </div>
 
-        <div>
+        <div className="min-w-0">
           <button
             type="button"
             onClick={() =>
@@ -51,7 +51,7 @@ export function UserRow({
                 state: { user: { ...user, isFollowing: isFollowed } },
               })
             }
-            className="text-white font-bold text-lg text-left hover:underline cursor-pointer"
+            className="text-white font-google font-semibold text-lg text-left hover:underline cursor-pointer truncate"
           >
             {user.username}
           </button>
@@ -59,7 +59,7 @@ export function UserRow({
           {user.bio && (
             <div className="text-sm text-zinc-400 mt-1">{user.bio}</div>
           )}
-          <div className="text-sm text-zinc-500 mt-2">
+          <div className="text-xs text-zinc-500 mt-2">
             {(user.followers || 0).toLocaleString()} followers &bull;{' '}
             {(user.following || 0).toLocaleString()} following
           </div>
@@ -72,7 +72,7 @@ export function UserRow({
         className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer transition whitespace-nowrap ${
           isFollowed
             ? 'bg-zinc-800 text-white border border-zinc-700'
-            : 'bg-linear-to-r from-violet-500 to-pink-500 text-white'
+            : 'bg-linear-to-r from-emerald-500 to-sky-500 text-zinc-950'
         } ${isPending ? 'opacity-70 cursor-not-allowed' : ''}`}
       >
         {isFollowed ? <FiUserCheck /> : <FiUserPlus />}
