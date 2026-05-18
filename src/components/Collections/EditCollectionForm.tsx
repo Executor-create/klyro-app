@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   FiAward,
   FiCheck,
@@ -7,12 +8,15 @@ import {
   FiEdit2,
   FiGrid,
   FiHeart,
+  FiLock,
   FiStar,
   FiZap,
 } from 'react-icons/fi';
 import { HiSparkles } from 'react-icons/hi2';
 import { updateCollection } from '../../api/collections';
 import type { Visibility } from '../../api/collections';
+import { useAuth } from '../../contexts/AuthContext';
+import { hasPremiumAccess } from '../../utils/subscriptionUtils';
 
 type IconOption =
   | 'Heart'
@@ -84,6 +88,8 @@ const EditCollectionForm = ({
   collection,
   onUpdated,
 }: Props) => {
+  const { user } = useAuth();
+  const isPremium = hasPremiumAccess(user);
   const [name, setName] = useState(collection.name);
   const [description, setDescription] = useState(collection.description ?? '');
   const [selectedIcon, setSelectedIcon] = useState<IconOption>(
@@ -293,26 +299,53 @@ const EditCollectionForm = ({
           </div>
 
           {/* Visibility toggle */}
-          <label className="flex items-center justify-between gap-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-3">
-            <div>
-              <span className="block text-sm font-semibold text-zinc-900">
-                Make collection public
-              </span>
-              <span className="block text-xs text-zinc-500">
-                Allow other users to discover this collection
-              </span>
+          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <span className="block text-sm font-semibold text-zinc-900">
+                  Make collection public
+                </span>
+                <span className="block text-xs text-zinc-500">
+                  {isPremium
+                    ? 'Allow other users to discover this collection'
+                    : 'Private collections require Premium'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isPremium && isPublic) return;
+                  setIsPublic((p) => !p);
+                }}
+                disabled={!isPremium && isPublic}
+                className={`relative h-7 w-14 shrink-0 rounded-full border transition ${
+                  isPublic
+                    ? 'border-zinc-950 bg-zinc-950'
+                    : 'border-zinc-300 bg-zinc-300'
+                } ${!isPremium ? 'cursor-not-allowed opacity-70' : ''}`}
+                aria-pressed={isPublic}
+              >
+                <span
+                  className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${isPublic ? 'left-8' : 'left-1'}`}
+                />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setIsPublic((p) => !p)}
-              className={`relative h-7 w-14 rounded-full border transition ${isPublic ? 'border-zinc-950 bg-zinc-950' : 'border-zinc-300 bg-zinc-300'}`}
-              aria-pressed={isPublic}
-            >
-              <span
-                className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${isPublic ? 'left-8' : 'left-1'}`}
-              />
-            </button>
-          </label>
+            {!isPremium && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-violet-600">
+                <FiLock size={11} />
+                <span>
+                  Private collections are a{' '}
+                  <Link
+                    to="/upgrade"
+                    className="font-semibold underline underline-offset-2 hover:text-violet-500"
+                  >
+                    Premium
+                  </Link>{' '}
+                  feature
+                </span>
+              </p>
+            )}
+          </div>
 
           {error && <p className="text-sm text-red-500">{error}</p>}
 

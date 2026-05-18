@@ -7,12 +7,15 @@ import {
   FiClock,
   FiGrid,
   FiHeart,
+  FiLock,
   FiMoreVertical,
   FiStar,
   FiZap,
 } from 'react-icons/fi';
 import { HiSparkles } from 'react-icons/hi2';
 import { createCollection } from '../../api/collections';
+import { useAuth } from '../../contexts/AuthContext';
+import { hasPremiumAccess } from '../../utils/subscriptionUtils';
 
 type CollectionIconOption =
   | 'Heart'
@@ -75,6 +78,8 @@ const CreateCollectionForm = ({
   onClose,
   onCreated,
 }: CreateCollectionFormProps) => {
+  const { user } = useAuth();
+  const isPremium = hasPremiumAccess(user);
   const [collectionName, setCollectionName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedIcon, setSelectedIcon] =
@@ -370,27 +375,54 @@ const CreateCollectionForm = ({
             </div>
           </div>
 
-          <label className="flex items-center justify-between gap-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-3">
-            <div>
-              <span className="block text-sm font-semibold text-zinc-900">
-                Make collection public
-              </span>
-              <span className="block text-xs text-zinc-500">
-                Allow other users to discover and follow this collection
-              </span>
+          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <span className="block text-sm font-semibold text-zinc-900">
+                  Make collection public
+                </span>
+                <span className="block text-xs text-zinc-500">
+                  {isPremium
+                    ? 'Allow other users to discover and follow this collection'
+                    : 'Private collections require Premium'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isPremium && isPublic) return; // can't go private without premium
+                  setIsPublic((prev) => !prev);
+                }}
+                disabled={!isPremium && isPublic}
+                className={`relative h-7 w-14 shrink-0 rounded-full border transition ${
+                  isPublic
+                    ? 'border-zinc-950 bg-zinc-950'
+                    : 'border-zinc-300 bg-zinc-300'
+                } ${!isPremium ? 'cursor-not-allowed opacity-70' : ''}`}
+                aria-pressed={isPublic}
+                aria-label="Toggle collection visibility"
+              >
+                <span
+                  className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${isPublic ? 'left-8' : 'left-1'}`}
+                />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setIsPublic((prev) => !prev)}
-              className={`relative h-7 w-14 rounded-full border transition ${isPublic ? 'border-zinc-950 bg-zinc-950' : 'border-zinc-300 bg-zinc-300'}`}
-              aria-pressed={isPublic}
-              aria-label="Toggle collection visibility"
-            >
-              <span
-                className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${isPublic ? 'left-8' : 'left-1'}`}
-              />
-            </button>
-          </label>
+            {!isPremium && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-violet-600">
+                <FiLock size={11} />
+                <span>
+                  Private collections are a{' '}
+                  <Link
+                    to="/upgrade"
+                    className="font-semibold underline underline-offset-2 hover:text-violet-500"
+                  >
+                    Premium
+                  </Link>{' '}
+                  feature
+                </span>
+              </p>
+            )}
+          </div>
 
           <div className="flex items-center justify-end gap-3 pt-1">
             <button
