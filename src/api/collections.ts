@@ -95,4 +95,38 @@ export const addGameToCollection = async (
   }
 };
 
-export default { createCollection, getAllCollections, getCollectionById, addGameToCollection };
+export type UpdateCollectionRequest = {
+  name?: string;
+  description?: string | null;
+  visibility?: Visibility;
+  icon?: string;
+  color?: string;
+};
+
+export const updateCollection = async (
+  id: string,
+  body: UpdateCollectionRequest,
+): Promise<Collection> => {
+  const response = await api.patch<CollectionResponse>(
+    `/collections/${id}`,
+    body,
+  );
+
+  if (
+    response.status !== 200 &&
+    response.status !== 201 &&
+    response.status !== 204
+  ) {
+    throw new Error('Failed to update collection');
+  }
+
+  return unwrapCollection(response.data);
+};
+
+export default {
+  createCollection,
+  getAllCollections,
+  getCollectionById,
+  addGameToCollection,
+  updateCollection,
+};

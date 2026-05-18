@@ -25,6 +25,10 @@ export type UseProfileUserReturn = {
   externalIsFollowing: boolean | undefined;
   followActionPending: boolean;
   toggleExternalFollow: () => Promise<void>;
+  /** Persisted follow state map (userId → boolean) — used to initialise modal follow buttons. */
+  followed: Record<string, boolean>;
+  /** Re-fetches the external profile user (e.g. to refresh follower counts after a list action). */
+  refreshProfile: () => Promise<void>;
 };
 
 /**
@@ -86,7 +90,8 @@ export function useProfileUser(): UseProfileUserReturn {
         const user = await getUser(id);
         if (!active) return;
         setSelectedUser(user);
-        setFollowed((prev) => mergeFollowedStateFromUsers(prev, [user]));
+        // trustBackend=true so a fresh API response can clear a stale local true
+        setFollowed((prev) => mergeFollowedStateFromUsers(prev, [user], true));
       } catch (error) {
         if (!active) return;
         if (!hasState) {
@@ -116,6 +121,27 @@ export function useProfileUser(): UseProfileUserReturn {
     if (!isExternalProfile || !selectedUser) return undefined;
     return resolveFollowedState(followed, selectedUser.id, selectedUser.isFollowing);
   }, [followed, isExternalProfile, selectedUser]);
+
+  const refreshProfile = useCallback(async () => {
+    if (!isExternalProfile || !id) return;
+    try {
+      const freshUser = await getUser(id);
+      // Only update stat counts (followers, following, games_count etc.) — do NOT
+      // overwrite isFollowing.  The follow state is owned by the optimistic updates
+      // and a stale re-fetch could flip it back to the wrong value.
+      setSelectedUser((prev) =>
+        prev
+          ? {
+            ...freshUser,
+            isFollowing: prev.isFollowing,
+          }
+          : freshUser,
+      );
+      // Intentionally skip mergeFollowedStateFromUsers here for the same reason.
+    } catch {
+      // Silently ignore — stale data is still displayed
+    }
+  }, [isExternalProfile, id]);
 
   const toggleExternalFollow = useCallback(async () => {
     if (!isExternalProfile || !selectedUser || followActionPending) return;
@@ -169,5 +195,7 @@ export function useProfileUser(): UseProfileUserReturn {
     externalIsFollowing,
     followActionPending,
     toggleExternalFollow,
+    followed,
+    refreshProfile,
   };
 }

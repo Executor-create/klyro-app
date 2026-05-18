@@ -1,4 +1,4 @@
-import { FiUserPlus } from 'react-icons/fi';
+import { FiUserCheck, FiUserPlus } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import type { NormalizedUser } from '../../api/users';
 
@@ -75,7 +75,7 @@ export function UserRow({
             : 'bg-linear-to-r from-violet-500 to-pink-500 text-white'
         } ${isPending ? 'opacity-70 cursor-not-allowed' : ''}`}
       >
-        <FiUserPlus />
+        {isFollowed ? <FiUserCheck /> : <FiUserPlus />}
         {isPending ? 'Updating...' : isFollowed ? 'Unfollow' : 'Follow'}
       </button>
     </li>

@@ -264,14 +264,12 @@ const isNotFollowingError = (error: unknown): boolean => {
   const status = getResponseStatus(error);
   const message = getResponseMessage(error);
 
+  // Backend may return 404 ("You are not following this user") or 409 depending
+  // on the implementation — treat both as a no-op.
   return (
-    status === 409 && hasAnyMessage(message, ['not following', 'not followed'])
+    (status === 409 || status === 404) &&
+    hasAnyMessage(message, ['not following', 'not followed'])
   );
-};
-
-const isMethodOrRouteMismatch = (error: unknown): boolean => {
-  const status = getResponseStatus(error);
-  return status === 404 || status === 405;
 };
 
 const assertMutationStatus = (status: number, action: 'follow' | 'unfollow') => {
@@ -285,10 +283,7 @@ const requestFollow = async (targetId: string): Promise<void> => {
   assertMutationStatus(response.status, 'follow');
 };
 
-const requestUnfollowByPost = async (targetId: string): Promise<void> => {
-  const response = await api.post(`/users/${targetId}/unfollow`);
-  assertMutationStatus(response.status, 'unfollow');
-};
+// Note: older API versions used POST for unfollow; we now standardize on DELETE.
 
 const requestUnfollowByDelete = async (targetId: string): Promise<void> => {
   const response = await api.delete(`/users/${targetId}/follow`);
@@ -391,27 +386,34 @@ export const followUser = async (targetId: string): Promise<void> => {
   }
 };
 
+export type UpdateMePayload = {
+  avatar_url?: string | null;
+  display_name?: string;
+  bio?: string | null;
+  tag?: string;
+};
+
+export const updateMe = async (payload: UpdateMePayload): Promise<NormalizedUser> => {
+  const response = await api.patch<RawUserResponse>('/me/avatar', payload);
+
+  if (response.status !== 200 && response.status !== 201 && response.status !== 204) {
+    throw new Error('Failed to update profile');
+  }
+
+  const user = extractSingleUser(response.data);
+  if (!user || !user.id) {
+    // 204 No Content — return a partial object so the caller can update state
+    return {} as NormalizedUser;
+  }
+
+  return normalizeUser(user);
+};
+
 export const unfollowUser = async (targetId: string): Promise<void> => {
   try {
-    await requestUnfollowByPost(targetId);
+    await requestUnfollowByDelete(targetId);
   } catch (error) {
-    if (isNotFollowingError(error)) {
-      return;
-    }
-
-    if (isMethodOrRouteMismatch(error)) {
-      try {
-        await requestUnfollowByDelete(targetId);
-        return;
-      } catch (fallbackError) {
-        if (isNotFollowingError(fallbackError)) {
-          return;
-        }
-
-        throw fallbackError;
-      }
-    }
-
+    if (isNotFollowingError(error)) return;
     throw error;
   }
 };

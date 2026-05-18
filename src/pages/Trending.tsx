@@ -3,11 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { FiTrendingUp, FiActivity, FiClock, FiAward } from 'react-icons/fi';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar/Sidebar';
-import { fetchPopularGames } from '../api/games';
+import { fetchPopularGames, fetchGames } from '../api/games';
 import type { PopularGame } from '../api/games';
 import { fetchMostLikedPosts } from '../api/posts';
 import type { MostLikedPost } from '../api/posts';
+import { fetchUsers } from '../api/users';
 import { renderStars } from '../utils/renderStars';
+
+const formatCount = (n: number): string => {
+  if (n >= 1_000_000)
+    return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
+  return String(n);
+};
 
 // ─── Stat card ───────────────────────────────────────────────────────────────
 type StatCardProps = {
@@ -102,6 +110,13 @@ function SkeletonCard() {
 const TABS = ['Games', 'Posts'] as const;
 type Tab = (typeof TABS)[number];
 
+type Stats = {
+  hotTopics: string;
+  trendingGames: string;
+  activeUsers: string;
+  newReleases: string;
+};
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 const TrendingPage = () => {
   const navigate = useNavigate();
@@ -114,6 +129,14 @@ const TrendingPage = () => {
   const [postsLoading, setPostsLoading] = useState(false);
   const [postsError, setPostsError] = useState<string | null>(null);
 
+  const [stats, setStats] = useState<Stats>({
+    hotTopics: '—',
+    trendingGames: '—',
+    activeUsers: '—',
+    newReleases: '—',
+  });
+
+  // Load popular games
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
@@ -128,6 +151,43 @@ const TrendingPage = () => {
       .finally(() => {
         if (isMounted) setLoading(false);
       });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Load stats from real API data
+  useEffect(() => {
+    let isMounted = true;
+
+    Promise.allSettled([
+      fetchMostLikedPosts(50),
+      fetchPopularGames(50),
+      fetchUsers(100),
+      fetchGames(50),
+    ]).then(([hotTopicsRes, trendingGamesRes, usersRes, newReleasesRes]) => {
+      if (!isMounted) return;
+
+      setStats({
+        hotTopics:
+          hotTopicsRes.status === 'fulfilled'
+            ? formatCount(hotTopicsRes.value.length)
+            : '—',
+        trendingGames:
+          trendingGamesRes.status === 'fulfilled'
+            ? formatCount(trendingGamesRes.value.length)
+            : '—',
+        activeUsers:
+          usersRes.status === 'fulfilled'
+            ? formatCount(usersRes.value.data.length)
+            : '—',
+        newReleases:
+          newReleasesRes.status === 'fulfilled'
+            ? formatCount(newReleasesRes.value.data.length)
+            : '—',
+      });
+    });
+
     return () => {
       isMounted = false;
     };
@@ -178,25 +238,25 @@ const TrendingPage = () => {
             <StatCard
               iconBg="bg-red-500/15"
               icon={<FiActivity size={18} className="text-red-400" />}
-              value="247"
+              value={stats.hotTopics}
               label="Hot Topics"
             />
             <StatCard
               iconBg="bg-violet-500/15"
               icon={<FiTrendingUp size={18} className="text-violet-400" />}
-              value="1.2K"
+              value={stats.trendingGames}
               label="Trending Games"
             />
             <StatCard
               iconBg="bg-emerald-500/15"
               icon={<FiClock size={18} className="text-emerald-400" />}
-              value="89K"
+              value={stats.activeUsers}
               label="Active Users"
             />
             <StatCard
               iconBg="bg-amber-500/15"
               icon={<FiAward size={18} className="text-amber-400" />}
-              value="34"
+              value={stats.newReleases}
               label="New Releases"
             />
           </div>

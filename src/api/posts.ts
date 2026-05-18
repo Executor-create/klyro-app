@@ -124,8 +124,8 @@ export const createPost = async (body: CreatePostPayload): Promise<Post> => {
   return unwrapPost(response.data);
 };
 
-export const getAllPosts = async (): Promise<Post[]> => {
-  const response = await api.get<PostsResponse>('/posts');
+export const getAllPosts = async (signal?: AbortSignal): Promise<Post[]> => {
+  const response = await api.get<PostsResponse>('/posts', { signal });
 
   if (response.status !== 200) {
     throw new Error('Failed to load posts');

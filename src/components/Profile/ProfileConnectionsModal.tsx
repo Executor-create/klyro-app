@@ -13,6 +13,8 @@ type ProfileConnectionsModalProps = {
   onToggleFollow?: (user: NormalizedUser) => void;
   pendingFollowIds?: Record<string, boolean>;
   currentUserId?: string | null;
+  /** Resolved follow state map (userId → boolean). When provided, takes precedence over user.isFollowing. */
+  followedMap?: Record<string, boolean>;
 };
 
 const ProfileConnectionsModal = ({
@@ -27,6 +29,7 @@ const ProfileConnectionsModal = ({
   onToggleFollow,
   pendingFollowIds,
   currentUserId,
+  followedMap,
 }: ProfileConnectionsModalProps) => {
   if (!open) return null;
 
@@ -81,7 +84,12 @@ const ProfileConnectionsModal = ({
             users.map((user) => {
               const handle = user.tag || '';
               const followers = user.followers ?? 0;
-              const isFollowing = !!user.isFollowing;
+              // Prefer the resolved followedMap (which reflects optimistic updates)
+              // over the raw user.isFollowing which may be stale or undefined.
+              const isFollowing =
+                followedMap && user.id in followedMap
+                  ? followedMap[user.id]
+                  : !!user.isFollowing;
               const isSelf = currentUserId && user.id === currentUserId;
               const isPending = !!pendingFollowIds?.[user.id];
 

@@ -36,20 +36,28 @@ const Home = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+
     const loadRecommendations = async () => {
       setLoading(true);
       try {
         const data = await getRecommendations(6);
+        if (!mounted) return;
         setRecommendations(data.data);
         setPersonalized(data.personalized);
       } catch (err) {
+        if (!mounted) return;
         console.error('Failed to load recommendations:', err);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
     loadRecommendations();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return (
@@ -153,11 +161,12 @@ const Home = () => {
                           >
                             <div className="relative h-20 overflow-hidden bg-zinc-800 rounded-lg mb-2">
                               <img
-                                src={
-                                  game.background_image ||
-                                  'https://via.placeholder.com/300x200'
-                                }
+                                src={game.background_image ?? undefined}
                                 alt={game.name}
+                                loading="lazy"
+                                decoding="async"
+                                width={300}
+                                height={80}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
                               <div className="absolute inset-0 bg-linear-to-t from-zinc-900 to-transparent" />

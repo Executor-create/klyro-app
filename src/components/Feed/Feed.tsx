@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getAllPosts, type Post } from '../../api/posts';
 import FeedComposer from './FeedComposer';
 import FeedItem from './FeedItem';
@@ -25,28 +25,40 @@ const formatRelativeTime = (value?: string) => {
   return date.toLocaleDateString();
 };
 
-const Feed = () => {
+export default function Feed() {
   const { user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
+  // Track whether the current render is the first load so we can
+  // animate items in only on the initial fetch, not on refreshes.
+  const isFirstLoad = useRef(true);
 
-  const loadPosts = useCallback(async () => {
+  const loadPosts = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true);
     setHasError(false);
 
     try {
-      const data = await getAllPosts();
+      const data = await getAllPosts(signal);
+      if (signal?.aborted) return;
       setPosts(data);
+      isFirstLoad.current = false;
     } catch (error) {
+      if ((error as any)?.name === 'CanceledError' || signal?.aborted) return;
       console.error('Failed to load posts', error);
       setHasError(true);
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    const controller = new AbortController();
+    loadPosts(controller.signal);
+    return () => controller.abort();
+  }, [loadPosts]);
+
+  const handlePostCreated = useCallback(() => {
     loadPosts();
   }, [loadPosts]);
 
@@ -54,7 +66,7 @@ const Feed = () => {
     <div className="p-6 flex justify-center">
       <div className="w-full max-w-4xl space-y-6">
         <div className="space-y-4">
-          <FeedComposer onPostCreated={loadPosts} />
+          <FeedComposer onPostCreated={handlePostCreated} />
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3 text-zinc-600">
               <span className="text-4xl opacity-30">⏳</span>
@@ -102,6 +114,7 @@ const Feed = () => {
                   user={userName}
                   avatar={avatar}
                   content={post.content}
+                  image={post.image}
                   timestamp={timestamp}
                   likes={post.likes ?? 0}
                   isLiked={post.isLiked ?? false}
@@ -115,6 +128,4 @@ const Feed = () => {
       </div>
     </div>
   );
-};
-
-export default Feed;
+}

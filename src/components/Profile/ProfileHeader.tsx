@@ -1,7 +1,15 @@
 import * as React from 'react';
-import { FiCalendar, FiEdit2, FiUserPlus, FiUserCheck } from 'react-icons/fi';
-import { FaUsers, FaUserFriends } from 'react-icons/fa';
+import {
+  FiCalendar,
+  FiCamera,
+  FiEdit2,
+  FiUserCheck,
+  FiUserPlus,
+} from 'react-icons/fi';
+import { FaUserFriends, FaUsers } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
+import { uploadMedia } from '../../api/media';
+import { updateMe } from '../../api/users';
 import { motion, type Variants } from 'framer-motion';
 
 type ProfileHeaderData = {
@@ -82,7 +90,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   onOpenFollowing,
   onOpenFriends,
 }) => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, refreshUser } = useAuth();
+
+  const avatarInputRef = React.useRef<HTMLInputElement>(null);
+  const [localAvatar, setLocalAvatar] = React.useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = React.useState(false);
 
   if (loading || (!profileData && isLoading)) {
     return <SkeletonBlock />;
@@ -113,6 +125,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     typeof isFollowing === 'boolean' &&
     typeof onToggleFollow === 'function';
 
+  const canEditAvatar = !hasExternalProfile && showEditButton;
+
   const profile = hasExternalProfile ? null : ((user as any)?.profile ?? null);
 
   const displayName = hasExternalProfile
@@ -123,19 +137,51 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     : profile?.tag || `@${(user as any)?.username || ''}`;
   const bio = hasExternalProfile ? profileData.bio || '' : profile?.bio || '';
   const avatar =
-    (hasExternalProfile ? profileData.avatarUrl : profile?.avatar_url) ||
+    localAvatar ??
+    (hasExternalProfile ? profileData.avatarUrl : profile?.avatar_url) ??
     `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=18181b&color=fff&size=256`;
   const joined = hasExternalProfile
     ? formatJoinedDate(profileData.joinedAt ?? profileData.createdAt)
     : formatJoinedDate(profile?.joined_at ?? (profile as any)?.created_at);
 
-  const followers = hasExternalProfile
+  const followersBase = hasExternalProfile
     ? (profileData.followers ?? 0)
     : (profile?.followers_count ?? 0);
-  const following = hasExternalProfile
+  const followingBase = hasExternalProfile
     ? (profileData.following ?? 0)
     : (profile?.following_count ?? 0);
+  const followers = followersBase;
+  const following = followingBase;
   const friends = friendsCount ?? (profile as any)?.friends_count ?? 0;
+
+  const handleAvatarClick = () => {
+    if (!canEditAvatar || isUploadingAvatar) return;
+    avatarInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const previewUrl = URL.createObjectURL(file);
+    setLocalAvatar(previewUrl);
+    setIsUploadingAvatar(true);
+
+    try {
+      const uploadedUrl = await uploadMedia(file);
+      await updateMe({ avatar_url: uploadedUrl });
+      setLocalAvatar(uploadedUrl);
+      URL.revokeObjectURL(previewUrl);
+      await refreshUser();
+    } catch (err) {
+      console.error('Failed to update avatar', err);
+      setLocalAvatar(null);
+      URL.revokeObjectURL(previewUrl);
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  };
 
   const statCards = [
     {
@@ -165,6 +211,17 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       transition={{ duration: 0.45 }}
       className="rounded-2xl bg-zinc-900 border border-zinc-800 overflow-hidden"
     >
+      {/* Hidden avatar file input */}
+      {canEditAvatar && (
+        <input
+          ref={avatarInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleAvatarChange}
+        />
+      )}
+
       {/* Banner with shimmer */}
       <div className="h-28 bg-gradient-to-r from-violet-600/30 via-purple-600/20 to-zinc-900 relative overflow-hidden">
         <motion.div
@@ -183,15 +240,29 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         {/* Avatar + actions row */}
         <div className="flex items-end justify-between -mt-12 mb-4">
           <motion.div
-            className="ring-4 ring-zinc-900 rounded-full"
-            whileHover={{ scale: 1.06 }}
+            className={`ring-4 ring-zinc-900 rounded-full relative ${canEditAvatar ? 'cursor-pointer group' : ''}`}
+            whileHover={canEditAvatar ? { scale: 1.06 } : { scale: 1.06 }}
             transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+            onClick={handleAvatarClick}
+            title={canEditAvatar ? 'Change avatar' : undefined}
           >
             <img
               src={avatar}
               alt={displayName}
               className="w-24 h-24 rounded-full object-cover bg-zinc-800"
             />
+            {/* Upload overlay */}
+            {canEditAvatar && (
+              <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                {isUploadingAvatar ? (
+                  <span className="text-[10px] text-white font-medium leading-tight text-center px-1">
+                    Uploading…
+                  </span>
+                ) : (
+                  <FiCamera size={22} className="text-white" />
+                )}
+              </div>
+            )}
           </motion.div>
 
           <div className="flex items-center gap-2 pb-1">

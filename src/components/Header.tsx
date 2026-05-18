@@ -1,8 +1,33 @@
 import { FiSearch } from 'react-icons/fi';
-import { MdAccountCircle } from 'react-icons/md';
 import { Link, useNavigate } from 'react-router-dom';
 import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../contexts/AuthContext';
+
+const UserAvatar = () => {
+  const { user } = useAuth();
+
+  const avatarUrl = user?.profile?.avatar_url ?? user?.avatar_url ?? null;
+  const displayName =
+    user?.profile?.display_name ?? user?.display_name ?? user?.username ?? '';
+  const initial = displayName.trim()[0]?.toUpperCase() ?? 'U';
+
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={displayName}
+        className="w-9 h-9 rounded-xl object-cover bg-zinc-800 border border-zinc-700"
+      />
+    );
+  }
+
+  return (
+    <div className="w-9 h-9 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-white text-sm font-semibold">
+      {initial}
+    </div>
+  );
+};
 
 const Header = () => {
   const [query, setQuery] = useState('');
@@ -69,11 +94,9 @@ const Header = () => {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+            className="cursor-pointer hover:opacity-90 transition-opacity"
           >
-            <MdAccountCircle
-              size={38}
-              className="cursor-pointer text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-800 rounded-xl p-1.5 hover:bg-zinc-800 hover:border-zinc-700 transition-all duration-200"
-            />
+            <UserAvatar />
           </motion.div>
         </Link>
       </div>

@@ -21,7 +21,6 @@ import {
   type NormalizedUser,
   unfollowUser,
 } from '../api/users';
-
 type ConnectionsState = {
   items: NormalizedUser[];
   isLoading: boolean;
@@ -62,6 +61,8 @@ export const Profile = () => {
     externalIsFollowing,
     followActionPending,
     toggleExternalFollow,
+    followed: globalFollowed,
+    refreshProfile,
   } = useProfileUser();
 
   const { userReviews, reviewsLoading, reviewsError } = useProfileReviews(
@@ -78,9 +79,7 @@ export const Profile = () => {
     null,
   );
 
-  const profileId = isExternalProfile
-    ? selectedUser?.id
-    : ((user as any)?.id ?? user?.id);
+  const profileId = isExternalProfile ? selectedUser?.id : user?.id;
 
   const [followersOpen, setFollowersOpen] = useState(false);
   const [followingOpen, setFollowingOpen] = useState(false);
@@ -189,33 +188,22 @@ export const Profile = () => {
     }
   }, [profileId]);
 
-  // Load counts on mount so stat cards show real numbers immediately
+  // Always reload the connection list each time the modal is opened so that
+  // any follow/unfollow changes made outside the modal are reflected.
   useEffect(() => {
-    if (profileId) {
-      loadFollowers();
-      loadFollowing();
-      loadFriends();
-    }
+    if (followersOpen) loadFollowers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profileId]);
+  }, [followersOpen]);
 
   useEffect(() => {
-    if (followersOpen && followersState.items.length === 0) {
-      loadFollowers();
-    }
-  }, [followersOpen, loadFollowers, followersState.items.length]);
+    if (followingOpen) loadFollowing();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [followingOpen]);
 
   useEffect(() => {
-    if (followingOpen && followingState.items.length === 0) {
-      loadFollowing();
-    }
-  }, [followingOpen, loadFollowing, followingState.items.length]);
-
-  useEffect(() => {
-    if (friendsOpen && friendsState.items.length === 0) {
-      loadFriends();
-    }
-  }, [friendsOpen, loadFriends, friendsState.items.length]);
+    if (friendsOpen) loadFriends();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [friendsOpen]);
 
   useEffect(() => {
     if (selectedTab !== 'Activity' || !profileId) return;
@@ -314,7 +302,36 @@ export const Profile = () => {
             ? setFollowingState
             : setFriendsState;
 
-      const wasFollowing = !!target.isFollowing;
+      // Bug fix: resolve wasFollowing from connectionsFollowedMap (which reflects
+      // optimistic updates from prior clicks) before falling back to target.isFollowing.
+      // This prevents the button showing "Follow" for users you already follow when
+      // the backend connections list didn't include an is_following field.
+      const resolvedIsFollowing = (
+        currentConnFollowedMap: Record<string, boolean>,
+      ) =>
+        target.id in currentConnFollowedMap
+          ? currentConnFollowedMap[target.id]
+          : target.id in globalFollowed
+            ? globalFollowed[target.id]
+            : !!target.isFollowing;
+
+      // Read current map snapshot synchronously for the delta calculation
+      const wasFollowing = resolvedIsFollowing(
+        (() => {
+          const map: Record<string, boolean> = {};
+          for (const list of [
+            followersState.items,
+            followingState.items,
+            friendsState.items,
+          ]) {
+            for (const item of list) {
+              if (typeof item.isFollowing === 'boolean')
+                map[item.id] = item.isFollowing;
+            }
+          }
+          return map;
+        })(),
+      );
       const delta = wasFollowing ? -1 : 1;
 
       setPendingFollowIds((prev) => ({ ...prev, [target.id]: true }));
@@ -326,6 +343,9 @@ export const Profile = () => {
         } else {
           await followUser(target.id);
         }
+        // Bug fix: after a successful API call, refresh the profile header counts
+        // so the Followers/Following numbers in the stat cards stay accurate.
+        refreshProfile();
       } catch (error) {
         console.error('Failed to update follow state', error);
         updateFollowState(setter, target.id, wasFollowing, -delta);
@@ -333,7 +353,14 @@ export const Profile = () => {
         setPendingFollowIds((prev) => ({ ...prev, [target.id]: false }));
       }
     },
-    [updateFollowState],
+    [
+      updateFollowState,
+      globalFollowed,
+      followersState.items,
+      followingState.items,
+      friendsState.items,
+      refreshProfile,
+    ],
   );
 
   const navigateToProfileFromConnections = useCallback(
@@ -345,6 +372,34 @@ export const Profile = () => {
     },
     [navigate],
   );
+
+  // Bug fix: build the followed map by layering sources from least to most
+  // authoritative:
+  //   1. globalFollowed (localStorage — may be stale but covers users whose
+  //      isFollowing wasn't returned by the connections API endpoint)
+  //   2. item.isFollowing from the freshly loaded list (API truth)
+  // This ensures Follow/Unfollow buttons in the modal always show the correct
+  // state even when the backend omits is_following in the connections response.
+  const connectionsFollowedMap = useMemo(() => {
+    // Start from the globally persisted follow state as a baseline
+    const map: Record<string, boolean> = { ...globalFollowed };
+    // Overwrite with the fresh per-item values when available
+    for (const item of [
+      ...followersState.items,
+      ...followingState.items,
+      ...friendsState.items,
+    ]) {
+      if (typeof item.isFollowing === 'boolean') {
+        map[item.id] = item.isFollowing;
+      }
+    }
+    return map;
+  }, [
+    globalFollowed,
+    followersState.items,
+    followingState.items,
+    friendsState.items,
+  ]);
 
   return (
     <div className="bg-zinc-950 h-screen overflow-hidden">
@@ -416,6 +471,10 @@ export const Profile = () => {
                             <img
                               src={game.background_image}
                               alt={game.name}
+                              loading="lazy"
+                              decoding="async"
+                              width={400}
+                              height={144}
                               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                             />
                             <div className="absolute inset-x-0 bottom-0 h-10 bg-linear-to-t from-zinc-900 to-transparent" />
@@ -511,6 +570,7 @@ export const Profile = () => {
                             user={userName}
                             avatar={avatar}
                             content={post.content}
+                            image={post.image}
                             timestamp={timestamp}
                             likes={post.likes ?? 0}
                             isLiked={post.isLiked ?? false}
@@ -586,12 +646,17 @@ export const Profile = () => {
         onToggleFollow={(target) => toggleFollowFromList(target, 'followers')}
         pendingFollowIds={pendingFollowIds}
         currentUserId={profileId ?? null}
+        followedMap={connectionsFollowedMap}
       />
 
       <ProfileConnectionsModal
         open={followingOpen}
         title="Following"
-        subtitle={`${(profileHeaderData?.following ?? followingState.items.length).toLocaleString()} people you follow`}
+        subtitle={`${(profileHeaderData?.following ?? followingState.items.length).toLocaleString()} people ${
+          isExternalProfile
+            ? `${profileHeaderData?.displayName ?? 'this user'} follows`
+            : 'you follow'
+        }`}
         users={followingState.items}
         isLoading={followingState.isLoading}
         error={followingState.error}
@@ -600,6 +665,7 @@ export const Profile = () => {
         onToggleFollow={(target) => toggleFollowFromList(target, 'following')}
         pendingFollowIds={pendingFollowIds}
         currentUserId={profileId ?? null}
+        followedMap={connectionsFollowedMap}
       />
 
       <ProfileConnectionsModal
@@ -614,6 +680,7 @@ export const Profile = () => {
         onToggleFollow={(target) => toggleFollowFromList(target, 'friends')}
         pendingFollowIds={pendingFollowIds}
         currentUserId={profileId ?? null}
+        followedMap={connectionsFollowedMap}
       />
     </div>
   );

@@ -25,7 +25,7 @@ export default defineConfig({
       'axios',
       'socket.io-client',
       'react-hook-form',
-      'react-icons',
+      // 'react-icons' intentionally omitted — subpath imports handle tree-shaking
       'clsx',
       'tailwind-merge',
     ],
@@ -57,6 +57,10 @@ export default defineConfig({
             id.includes('node_modules/tailwind-merge/')
           ) {
             return 'ui-vendor'
+          }
+
+          if (id.includes('node_modules/framer-motion/')) {
+            return 'animation-vendor'
           }
 
           if (

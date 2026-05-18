@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   FiBookmark,
   FiClock,
+  FiEdit2,
   FiGrid,
   FiHeart,
   FiLock,
@@ -20,6 +21,8 @@ import {
 } from '../api/collections';
 import type { Game } from '../api/games';
 import { AddGamesModal } from '../components/Collections/AddGamesModal';
+import EditCollectionForm from '../components/Collections/EditCollectionForm';
+import type { EditCollectionInitial } from '../components/Collections/EditCollectionForm';
 
 type IconComponent = ComponentType<{ size?: number; className?: string }>;
 
@@ -222,6 +225,7 @@ const CollectionDetail = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAddGamesOpen, setIsAddGamesOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'Grid' | 'List'>('Grid');
 
   const refreshCollection = async () => {
@@ -314,6 +318,13 @@ const CollectionDetail = () => {
                       <IoAdd size={20} />
                       <span>Add Games</span>
                     </button>
+                    <button
+                      onClick={() => setIsEditOpen(true)}
+                      title="Edit collection"
+                      className="flex h-12 w-12 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900 text-zinc-200 transition hover:border-violet-500 hover:text-violet-400"
+                    >
+                      <FiEdit2 size={18} />
+                    </button>
                     <button className="flex h-12 w-12 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900 text-zinc-200 transition hover:border-zinc-600 hover:text-white">
                       <IoHeartOutline size={20} />
                     </button>
@@ -392,6 +403,27 @@ const CollectionDetail = () => {
           collectionTitle={collection.title}
           onClose={() => setIsAddGamesOpen(false)}
           onGamesAdded={refreshCollection}
+        />
+      )}
+
+      {isEditOpen && id && collection && (
+        <EditCollectionForm
+          open={isEditOpen}
+          collection={
+            {
+              id,
+              name: collection.title,
+              description: collection.description,
+              icon: collection.icon.displayName ?? collection.stats.theme,
+              color: collection.stats.theme,
+              visibility: collection.visibility,
+            } satisfies EditCollectionInitial
+          }
+          onClose={() => setIsEditOpen(false)}
+          onUpdated={async () => {
+            await refreshCollection();
+            setIsEditOpen(false);
+          }}
         />
       )}
     </div>

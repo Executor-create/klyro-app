@@ -161,6 +161,7 @@ const PostDetail = () => {
                 user={userName}
                 avatar={avatar}
                 content={post.content}
+                image={post.image}
                 timestamp={timestamp}
                 likes={post.likes ?? 0}
                 isLiked={post.isLiked ?? false}
