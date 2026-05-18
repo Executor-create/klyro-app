@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   FiAward,
   FiCheck,
@@ -84,6 +85,7 @@ const CreateCollectionForm = ({
   const [isIconMenuOpen, setIsIconMenuOpen] = useState(false);
   const [isColorMenuOpen, setIsColorMenuOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const activeIcon =
     iconOptions.find((option) => option.value === selectedIcon) ??
@@ -95,6 +97,7 @@ const CreateCollectionForm = ({
   const close = () => {
     setIsIconMenuOpen(false);
     setIsColorMenuOpen(false);
+    setFormError(null);
     onClose();
   };
 
@@ -106,6 +109,7 @@ const CreateCollectionForm = ({
     setIsPublic(true);
     setIsIconMenuOpen(false);
     setIsColorMenuOpen(false);
+    setFormError(null);
   };
 
   if (!open) {
@@ -120,6 +124,7 @@ const CreateCollectionForm = ({
     }
 
     setIsSubmitting(true);
+    setFormError(null);
 
     try {
       await createCollection({
@@ -134,7 +139,17 @@ const CreateCollectionForm = ({
 
       resetForm();
       close();
-    } catch (error) {
+    } catch (error: any) {
+      const status = error?.response?.status;
+      const message: string = error?.response?.data?.message ?? '';
+
+      if (status === 403) {
+        setFormError(
+          message || 'Upgrade to Premium for unlimited collections.',
+        );
+      } else {
+        setFormError('Failed to create collection. Please try again.');
+      }
       console.error('Failed to create collection', error);
     } finally {
       setIsSubmitting(false);
@@ -174,6 +189,19 @@ const CreateCollectionForm = ({
         </div>
 
         <div className="mt-4 space-y-3">
+          {formError && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              <p className="font-semibold">{formError}</p>
+              {formError.toLowerCase().includes('upgrade') && (
+                <Link
+                  to="/upgrade"
+                  className="mt-1 inline-flex text-xs font-semibold text-violet-600 hover:text-violet-500"
+                >
+                  View Premium plans
+                </Link>
+              )}
+            </div>
+          )}
           <label className="block">
             <span className="mb-2 block text-sm font-semibold text-zinc-900">
               Collection Name

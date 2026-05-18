@@ -21,6 +21,7 @@ const Search = lazy(() => import('../pages/Search'));
 const TrendingPage = lazy(() => import('../pages/Trending'));
 const Recommendations = lazy(() => import('../pages/Recommendations'));
 const Chat = lazy(() => import('../pages/Chat'));
+const Upgrade = lazy(() => import('../pages/Upgrade'));
 
 const router = createBrowserRouter(
   [
@@ -90,6 +91,10 @@ const router = createBrowserRouter(
         {
           path: 'chat',
           element: <Chat />,
+        },
+        {
+          path: 'upgrade',
+          element: <Upgrade />,
         },
       ],
     },

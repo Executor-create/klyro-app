@@ -8,6 +8,8 @@ import {
   type RecommendedGame,
 } from '../api/recommendations';
 import { renderStars } from '../utils/renderStars';
+import { useAuth } from '../contexts/AuthContext';
+import { hasPremiumAccess } from '../utils/subscriptionUtils';
 
 function SkeletonCard() {
   return (
@@ -24,10 +26,13 @@ function SkeletonCard() {
 
 const Recommendations = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [recommendations, setRecommendations] = useState<RecommendedGame[]>([]);
   const [personalized, setPersonalized] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isPremium = hasPremiumAccess(user);
+  const freeVisibleCount = 3;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -118,6 +123,25 @@ const Recommendations = () => {
             </div>
           </div>
 
+          {!isPremium && recommendations.length > freeVisibleCount && (
+            <div className="max-w-2xl border border-violet-500/30 bg-violet-500/10 rounded-2xl p-4 text-sm text-violet-100">
+              <p className="font-semibold">
+                Free preview shows {freeVisibleCount} recommendations.
+              </p>
+              <p className="mt-1 text-xs text-violet-200/80">
+                Upgrade to Premium to unlock the full list and advanced
+                recommendations.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate('/upgrade')}
+                className="mt-3 inline-flex rounded-full border border-violet-400/40 bg-violet-500/20 px-3 py-1.5 text-xs font-semibold text-violet-100 hover:bg-violet-500/30"
+              >
+                View Premium plans
+              </button>
+            </div>
+          )}
+
           {/* recommendations grid */}
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -137,7 +161,8 @@ const Recommendations = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {recommendations.map((game) => {
+              {recommendations.map((game, index) => {
+                const isLocked = !isPremium && index >= freeVisibleCount;
                 const score = Math.max(0, Math.min(1, game.score ?? 0));
                 const rating = game.rating ?? 0;
                 const releaseDate =
@@ -149,8 +174,14 @@ const Recommendations = () => {
                 return (
                   <article
                     key={game.id}
-                    onClick={() => navigate(`/games/${game.id}`)}
-                    className="group relative bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden flex flex-col hover:-translate-y-0.5 hover:border-zinc-700 hover:shadow-2xl hover:shadow-black/60 transition-all duration-200 cursor-pointer"
+                    onClick={() =>
+                      navigate(isLocked ? '/upgrade' : `/games/${game.id}`)
+                    }
+                    className={`group relative bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden flex flex-col transition-all duration-200 ${
+                      isLocked
+                        ? 'cursor-not-allowed opacity-80'
+                        : 'hover:-translate-y-0.5 hover:border-zinc-700 hover:shadow-2xl hover:shadow-black/60 cursor-pointer'
+                    }`}
                   >
                     {/* Confidence badge */}
                     <div className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-emerald-600 text-white text-[11px] font-bold px-2.5 py-1 rounded-md">
@@ -158,17 +189,27 @@ const Recommendations = () => {
                       <span>{Math.round(score * 100)}%</span>
                     </div>
 
-                    <div className="relative h-40 overflow-hidden bg-zinc-800 shrink-0">
+                    <div
+                      className={`relative h-40 overflow-hidden bg-zinc-800 shrink-0 ${
+                        isLocked ? 'blur-md brightness-75' : ''
+                      }`}
+                    >
                       <img
                         src={imageSrc}
                         alt={game.name}
                         loading="lazy"
-                        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                        className={`w-full h-full object-cover object-center transition-transform duration-300 ${
+                          isLocked ? 'scale-110' : 'group-hover:scale-105'
+                        }`}
                       />
                       <div className="absolute inset-x-0 bottom-0 h-14 bg-linear-to-t from-zinc-900 to-transparent"></div>
                     </div>
 
-                    <div className="p-4 flex flex-col flex-1 gap-2">
+                    <div
+                      className={`p-4 flex flex-col flex-1 gap-2 ${
+                        isLocked ? 'blur-md opacity-40 select-none' : ''
+                      }`}
+                    >
                       <h3 className="text-sm font-bold text-white leading-snug tracking-tight truncate">
                         {game.name}
                       </h3>
@@ -182,6 +223,27 @@ const Recommendations = () => {
                         </span>
                       </div>
                     </div>
+
+                    {isLocked && (
+                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/60 text-center px-6">
+                        <p className="text-sm font-semibold text-white">
+                          Premium only
+                        </p>
+                        <p className="text-xs text-zinc-300">
+                          Unlock full recommendations with Premium.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            navigate('/upgrade');
+                          }}
+                          className="rounded-full border border-violet-400/40 bg-violet-500/20 px-4 py-2 text-xs font-semibold text-violet-100 hover:bg-violet-500/30"
+                        >
+                          Upgrade
+                        </button>
+                      </div>
+                    )}
                   </article>
                 );
               })}

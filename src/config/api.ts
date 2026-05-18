@@ -56,10 +56,31 @@ const refreshTokens = async () => {
   return data;
 };
 
+const PREMIUM_REQUIRED_MESSAGE = 'Premium subscription required';
+const COLLECTIONS_LIMIT_MESSAGE = 'Upgrade to Premium for unlimited collections';
+
+const dispatchPremiumRequired = (message: string) => {
+  window.dispatchEvent(
+    new CustomEvent('premium-required', { detail: { message } }),
+  );
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    if (error.response?.status === 403) {
+      const message: string =
+        error.response?.data?.message ?? '';
+
+      if (
+        message === PREMIUM_REQUIRED_MESSAGE ||
+        message === COLLECTIONS_LIMIT_MESSAGE
+      ) {
+        dispatchPremiumRequired(message);
+      }
+    }
 
     if (
       error.response?.status === 401 &&

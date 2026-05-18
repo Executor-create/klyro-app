@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  FiAlertCircle,
   FiBookmark,
   FiClock,
   FiGrid,
@@ -16,6 +17,7 @@ import {
 import Header from '../components/Header';
 import CreateCollectionForm from '../components/Collections/CreateCollectionForm';
 import Sidebar from '../components/Sidebar/Sidebar';
+import { useAuth } from '../contexts/AuthContext';
 import {
   type IconComponent,
   COLLECTION_ICON_MAP,
@@ -23,6 +25,7 @@ import {
   COLLECTION_COLOR_PREVIEW_MAP,
   toCollectionTitle,
 } from '../config/collectionsConfig';
+import { hasPremiumAccess } from '../utils/subscriptionUtils';
 
 type CollectionTile = {
   label: string;
@@ -225,10 +228,22 @@ function CollectionCardView({ collection }: { collection: CollectionCard }) {
 }
 
 const Collections = () => {
+  const { user } = useAuth();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [collections, setCollections] = useState<CollectionCard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [premiumGateMessage, setPremiumGateMessage] = useState<string | null>(
+    null,
+  );
+
+  const isPremium = hasPremiumAccess(user);
+  const hasCollectionLimit = !isPremium && collections.length >= 3;
+  const upgradePromptMessage =
+    premiumGateMessage ??
+    (hasCollectionLimit
+      ? 'Upgrade to Premium for unlimited collections.'
+      : null);
 
   const loadCollections = async () => {
     setIsLoading(true);
@@ -271,6 +286,18 @@ const Collections = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ message?: string }>).detail;
+      setPremiumGateMessage(
+        detail?.message || 'Premium subscription required for this action.',
+      );
+    };
+
+    window.addEventListener('premium-required', handler);
+    return () => window.removeEventListener('premium-required', handler);
+  }, []);
+
   return (
     <div className="bg-zinc-950 h-screen overflow-hidden text-white">
       <Header />
@@ -298,13 +325,51 @@ const Collections = () => {
 
               <button
                 type="button"
-                onClick={() => setIsCreateOpen(true)}
-                className="inline-flex items-center justify-center gap-2 self-start rounded-2xl bg-linear-to-r from-violet-500 to-indigo-500 px-5 py-3.5 text-sm font-semibold text-white shadow-md shadow-violet-950/30 transition hover:scale-[1.01] hover:from-violet-400 hover:to-indigo-400"
+                disabled={hasCollectionLimit}
+                onClick={() => {
+                  if (hasCollectionLimit) {
+                    setPremiumGateMessage(
+                      'Upgrade to Premium for unlimited collections.',
+                    );
+                    return;
+                  }
+                  setIsCreateOpen(true);
+                }}
+                className={`inline-flex items-center justify-center gap-2 self-start rounded-2xl px-5 py-3.5 text-sm font-semibold shadow-md shadow-violet-950/30 transition ${
+                  hasCollectionLimit
+                    ? 'bg-zinc-800 text-zinc-400 cursor-not-allowed border border-zinc-700'
+                    : 'bg-linear-to-r from-violet-500 to-indigo-500 text-white hover:scale-[1.01] hover:from-violet-400 hover:to-indigo-400'
+                }`}
               >
                 <FiPlus size={16} />
                 New Collection
               </button>
             </section>
+
+            {upgradePromptMessage && (
+              <section className="rounded-3xl border border-violet-500/30 bg-violet-500/10 px-5 py-4 text-sm text-violet-100 flex items-start gap-3">
+                <FiAlertCircle size={16} className="mt-0.5 text-violet-300" />
+                <div className="flex-1">
+                  <p className="font-semibold">{upgradePromptMessage}</p>
+                  <p className="mt-1 text-xs text-violet-200/80">
+                    Unlock unlimited collections and premium features.
+                  </p>
+                  <Link
+                    to="/upgrade"
+                    className="mt-2 inline-flex text-xs font-semibold text-violet-200 hover:text-white"
+                  >
+                    View Premium plans
+                  </Link>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPremiumGateMessage(null)}
+                  className="text-xs font-semibold text-violet-200 hover:text-white"
+                >
+                  Dismiss
+                </button>
+              </section>
+            )}
 
             {isLoading ? (
               <section className="grid gap-5 xl:grid-cols-3">

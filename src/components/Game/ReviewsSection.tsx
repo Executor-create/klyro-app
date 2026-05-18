@@ -8,6 +8,7 @@ import { getReviewsByGame, createReview } from '../../api/reviews';
 import type { Review as ApiReview } from '../../api/reviews';
 import { getPostsByGame, type Post } from '../../api/posts';
 import { useAuth } from '../../contexts/AuthContext';
+import { hasPremiumAccess } from '../../utils/subscriptionUtils';
 
 const tabs = ['Reviews', 'Community', 'Related Games'];
 
@@ -24,6 +25,8 @@ const ReviewsSection: React.FC<{
   const [relatedError, setRelatedError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isPremium = hasPremiumAccess(user);
+  const freeVisibleCount = 6;
   const [reviews, setReviews] = useState<
     (ApiReview & { date?: string; text?: string })[]
   >([]);
@@ -293,31 +296,72 @@ const ReviewsSection: React.FC<{
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-3">
-              {relatedGames.map((g) => (
-                <button
-                  key={g.id}
-                  onClick={() => navigate(`/games/${g.id}`)}
-                  className="group text-left transition-all duration-200 hover:-translate-y-1 hover:scale-[1.01]"
-                >
-                  <div className="overflow-hidden rounded-2xl border border-white/8 bg-white/5 shadow-lg shadow-black/20 transition-all duration-200 group-hover:border-white/12">
-                    <div className="relative aspect-video overflow-hidden">
-                      <img
-                        src={g.background_image}
-                        alt={g.name}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
+              {relatedGames.map((g, index) => {
+                const isLocked = !isPremium && index >= freeVisibleCount;
+
+                return (
+                  <button
+                    key={g.id}
+                    onClick={() =>
+                      navigate(isLocked ? '/upgrade' : `/games/${g.id}`)
+                    }
+                    className={`group text-left transition-all duration-200 ${
+                      isLocked
+                        ? 'cursor-not-allowed opacity-80'
+                        : 'hover:-translate-y-1 hover:scale-[1.01]'
+                    }`}
+                  >
+                    <div className="relative overflow-hidden rounded-2xl border border-white/8 bg-white/5 shadow-lg shadow-black/20 transition-all duration-200 group-hover:border-white/12">
+                      <div
+                        className={`relative aspect-video overflow-hidden ${
+                          isLocked ? 'blur-md brightness-75' : ''
+                        }`}
+                      >
+                        <img
+                          src={g.background_image}
+                          alt={g.name}
+                          className={`h-full w-full object-cover transition-transform duration-500 ${
+                            isLocked ? 'scale-110' : 'group-hover:scale-105'
+                          }`}
+                        />
+                      </div>
+                      <div
+                        className={`space-y-1 px-3 py-3 ${
+                          isLocked ? 'blur-md opacity-40 select-none' : ''
+                        }`}
+                      >
+                        <h3 className="truncate text-sm font-semibold text-white">
+                          {g.name}
+                        </h3>
+                        <p className="text-xs text-zinc-400">
+                          {g.genres?.[0] ?? 'Game'}
+                        </p>
+                      </div>
+
+                      {isLocked && (
+                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-black/60 text-center px-4">
+                          <p className="text-sm font-semibold text-white">
+                            Premium only
+                          </p>
+                          <p className="text-xs text-zinc-300">
+                            Unlock full related games.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              navigate('/upgrade');
+                            }}
+                            className="rounded-full border border-violet-400/40 bg-violet-500/20 px-3 py-1.5 text-xs font-semibold text-violet-100 hover:bg-violet-500/30"
+                          >
+                            Upgrade
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    <div className="space-y-1 px-3 py-3">
-                      <h3 className="truncate text-sm font-semibold text-white">
-                        {g.name}
-                      </h3>
-                      <p className="text-xs text-zinc-400">
-                        {g.genres?.[0] ?? 'Game'}
-                      </p>
-                    </div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

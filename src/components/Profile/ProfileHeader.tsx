@@ -3,6 +3,7 @@ import {
   FiCalendar,
   FiCamera,
   FiEdit2,
+  FiStar,
   FiUserCheck,
   FiUserPlus,
 } from 'react-icons/fi';
@@ -11,6 +12,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { uploadMedia } from '../../api/media';
 import { updateMe } from '../../api/users';
 import { motion, type Variants } from 'framer-motion';
+import type { Plan, SubscriptionStatus } from '../../types/user.type';
+import { hasPremiumAccess } from '../../utils/subscriptionUtils';
 
 type ProfileHeaderData = {
   displayName: string;
@@ -21,6 +24,9 @@ type ProfileHeaderData = {
   createdAt?: string | null;
   followers?: number;
   following?: number;
+  plan?: Plan;
+  subscriptionStatus?: SubscriptionStatus;
+  subscriptionEndDate?: string | null;
 };
 
 type ProfileHeaderProps = {
@@ -153,6 +159,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const followers = followersBase;
   const following = followingBase;
   const friends = friendsCount ?? (profile as any)?.friends_count ?? 0;
+  const profileUser = hasExternalProfile ? (profileData as any) : user;
+  const isPremiumProfile = hasPremiumAccess(profileUser);
 
   const handleAvatarClick = () => {
     if (!canEditAvatar || isUploadingAvatar) return;
@@ -223,9 +231,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       )}
 
       {/* Banner with shimmer */}
-      <div className="h-28 bg-gradient-to-r from-violet-600/30 via-purple-600/20 to-zinc-900 relative overflow-hidden">
+      <div className="h-28 bg-linear-to-r from-violet-600/30 via-purple-600/20 to-zinc-900 relative overflow-hidden">
         <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"
+          className="absolute inset-0 bg-linear-to-r from-transparent via-white/5 to-transparent"
           animate={{ x: ['-100%', '200%'] }}
           transition={{
             duration: 2.5,
@@ -314,9 +322,17 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
         >
-          <h2 className="font-google text-2xl font-semibold text-white leading-tight">
-            {displayName}
-          </h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-google text-2xl font-semibold text-white leading-tight">
+              {displayName}
+            </h2>
+            {isPremiumProfile && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-violet-500/30 bg-violet-600/15 px-2 py-1 text-[11px] font-semibold text-violet-100">
+                <FiStar size={12} className="text-violet-300" />
+                Premium
+              </span>
+            )}
+          </div>
           {handle && <p className="text-sm text-zinc-500 mt-0.5">{handle}</p>}
         </motion.div>
 

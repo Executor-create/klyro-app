@@ -1,3 +1,6 @@
+export type Plan = 'FREE' | 'PREMIUM';
+export type SubscriptionStatus = 'ACTIVE' | 'CANCELED' | 'EXPIRED';
+
 export type User = {
   id: string;
   username: string;
@@ -5,6 +8,10 @@ export type User = {
   token?: string;
   avatar_url?: string | null;
   display_name?: string | null;
+  plan?: Plan;
+  subscriptionStatus?: SubscriptionStatus;
+  subscriptionStartDate?: string | null;
+  subscriptionEndDate?: string | null;
   profile?: {
     avatar_url?: string | null;
     display_name?: string | null;

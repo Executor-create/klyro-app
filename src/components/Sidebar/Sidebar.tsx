@@ -16,8 +16,10 @@ import { LuGamepad2 } from 'react-icons/lu';
 import { useEffect, useRef, useState } from 'react';
 import SidebarItem from './SidebarItem';
 import { removeItemFromLocalStorage } from '../../utils/localStorage';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { logout as apiLogout } from '../../api/auth';
+import { useAuth } from '../../contexts/AuthContext';
+import { hasPremiumAccess } from '../../utils/subscriptionUtils';
 
 const items = [
   { name: 'Home Feed', href: '/', icon: FiHome },
@@ -25,7 +27,6 @@ const items = [
   { name: 'Browse Games', href: '/games', icon: LuGamepad2 },
   { name: 'Recommendations', href: '/recommendations', icon: FiStar },
   { name: 'Trending', href: '/trending', icon: FiTrendingUp },
-  { name: 'Community', href: '#', icon: FiUsers },
   { name: 'Messages', href: '/chat', icon: FiMessageSquare },
   { name: 'Collections', href: '/collections', icon: FiFolder },
 ];
@@ -35,6 +36,8 @@ const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [labelsVisible, setLabelsVisible] = useState(true);
   const fadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { user } = useAuth();
+  const isPremium = hasPremiumAccess(user);
 
   useEffect(() => {
     if (localStorage.getItem('sidebarCollapsed') === 'true') {
@@ -76,6 +79,36 @@ const Sidebar = () => {
               labelsVisible={labelsVisible}
             />
           ))}
+          {!isPremium ? (
+            <SidebarItem
+              name="Upgrade"
+              href="/upgrade"
+              icon={FiStar}
+              collapsed={collapsed}
+              labelsVisible={labelsVisible}
+            />
+          ) : (
+            <li className="relative mb-0.5">
+              <Link
+                to="/upgrade"
+                aria-label="Manage premium plan"
+                className={`font-google text-xs font-semibold uppercase tracking-[0.2em] flex items-center gap-3 rounded-lg border border-violet-500/30 bg-violet-600/10 text-violet-200 transition hover:border-violet-400/50 hover:text-white ${
+                  collapsed ? 'justify-center p-3' : 'px-3 py-2.5'
+                }`}
+              >
+                <FiStar size={16} className="text-violet-300" />
+                {labelsVisible && (
+                  <span
+                    className={`whitespace-nowrap overflow-hidden transition-opacity duration-200 ${
+                      collapsed ? 'opacity-0 w-0' : 'opacity-100'
+                    }`}
+                  >
+                    Premium
+                  </span>
+                )}
+              </Link>
+            </li>
+          )}
         </ul>
 
         <div className="mt-auto border-t border-zinc-800 pt-3">
